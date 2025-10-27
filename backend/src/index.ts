@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import contactRoutes from './routes/contacts';
+import rawDataRoutes from './routes/rawData';
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/contacts', contactRoutes);
+app.use('/api/raw-data', rawDataRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

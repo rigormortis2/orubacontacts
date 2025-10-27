@@ -32,3 +32,17 @@ model Contact {
 
   @@map("contacts")
 }
+
+model RawData {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  listName    String   @map("list_name")
+  shortUrl    String?  @map("short_url")
+  fullUrl     String?  @map("full_url")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("raw_datas")
+}
