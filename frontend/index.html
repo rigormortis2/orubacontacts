@@ -3,120 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oruba Contacts - API Test</title>
+    <title>Oruba Contacts - Yönetim Paneli</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-active {
+            @apply border-b-2 border-blue-600 text-blue-600;
+        }
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
         <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
             <h1 class="text-3xl font-bold text-gray-900 mb-2">Oruba Contacts</h1>
-            <p class="text-gray-600">Hastane İletişim Bilgileri Yönetim Sistemi</p>
+            <p class="text-gray-600">Hastane İletişim Bilgileri ve Raw Data Yönetim Sistemi</p>
             <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <p class="text-green-800 font-medium">✓ Backend API çalışıyor!</p>
                 <p class="text-sm text-green-600 mt-1">API Base URL: http://localhost:3000/api</p>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">API Endpoints</h2>
-            <div class="space-y-2">
-                <div class="p-3 bg-gray-50 rounded border">
-                    <span class="font-mono text-sm text-blue-600">GET</span>
-                    <span class="ml-2 font-mono text-sm">/api/contacts</span>
-                    <span class="ml-2 text-gray-500">- Tüm hastaneleri listele</span>
-                </div>
-                <div class="p-3 bg-gray-50 rounded border">
-                    <span class="font-mono text-sm text-green-600">POST</span>
-                    <span class="ml-2 font-mono text-sm">/api/contacts</span>
-                    <span class="ml-2 text-gray-500">- Yeni hastane ekle</span>
-                </div>
-                <div class="p-3 bg-gray-50 rounded border">
-                    <span class="font-mono text-sm text-yellow-600">PUT</span>
-                    <span class="ml-2 font-mono text-sm">/api/contacts/:id</span>
-                    <span class="ml-2 text-gray-500">- Hastane güncelle</span>
-                </div>
-                <div class="p-3 bg-gray-50 rounded border">
-                    <span class="font-mono text-sm text-red-600">DELETE</span>
-                    <span class="ml-2 font-mono text-sm">/api/contacts/:id</span>
-                    <span class="ml-2 text-gray-500">- Hastane sil</span>
-                </div>
-                <div class="p-3 bg-gray-50 rounded border">
-                    <span class="font-mono text-sm text-blue-600">GET</span>
-                    <span class="ml-2 font-mono text-sm">/api/raw-data</span>
-                    <span class="ml-2 text-gray-500">- Tüm raw data'ları listele</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">Hastane Listesi</h2>
-            <button onclick="loadContacts()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
-                Hastaneleri Yükle
-            </button>
-            <div id="contacts-list" class="space-y-2"></div>
-            <div id="loading" class="text-gray-500 text-center py-4" style="display:none;">
-                Yükleniyor...
-            </div>
-            <div id="error" class="text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">Yeni Hastane Ekle</h2>
-            <form id="add-contact-form" class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Hastane Adı *</label>
-                        <input type="text" name="hastaneAdi" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">İl *</label>
-                        <input type="text" name="il" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Hastane Türü *</label>
-                        <select name="hastaneTuru" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                            <option value="kamu">Kamu</option>
-                            <option value="özel">Özel</option>
-                            <option value="muayenehane">Muayenehane</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Alt Tür</label>
-                        <select name="altTur" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Seçiniz</option>
-                            <option value="eğitim araştırma">Eğitim Araştırma</option>
-                            <option value="devlet">Devlet</option>
-                            <option value="ilçe">İlçe</option>
-                            <option value="üniversite">Üniversite</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefon Doktor</label>
-                        <input type="tel" name="telefonDoktor" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Mail Doktor</label>
-                        <input type="email" name="mailDoktor" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                </div>
-                <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
-                    Hastane Ekle
+        <!-- Tabs -->
+        <div class="bg-white rounded-lg shadow-lg mb-6">
+            <div class="flex border-b">
+                <button onclick="showTab('contacts')" id="tab-contacts" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600 tab-active">
+                    Hastaneler
                 </button>
-            </form>
-            <div id="add-success" class="mt-4 text-green-600 p-4 bg-green-50 rounded" style="display:none;"></div>
-            <div id="add-error" class="mt-4 text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
+                <button onclick="showTab('rawdata')" id="tab-rawdata" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600">
+                    Raw Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Contacts Tab -->
+        <div id="content-contacts" class="space-y-6">
+            <!-- Contacts Table -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">Hastane Listesi</h2>
+                    <button onclick="loadContacts()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        🔄 Yenile
+                    </button>
+                </div>
+                <div id="contacts-loading" class="text-center py-8" style="display:none;">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                </div>
+                <div id="contacts-error" class="text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
+                <div class="table-container">
+                    <table id="contacts-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hastane Adı</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İl</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tür</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alt Tür</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tel Doktor</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tel Satınalma</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tel Biyomedikal</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mail Doktor</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mail Satınalma</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mail Biyomedikal</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contacts-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Add Contact Form -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Yeni Hastane Ekle</h2>
+                <form id="add-contact-form" class="space-y-4">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Hastane Adı *</label>
+                            <input type="text" name="hastaneAdi" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">İl *</label>
+                            <input type="text" name="il" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Hastane Türü *</label>
+                            <select name="hastaneTuru" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                                <option value="kamu">Kamu</option>
+                                <option value="özel">Özel</option>
+                                <option value="muayenehane">Muayenehane</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Alt Tür</label>
+                            <select name="altTur" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Seçiniz</option>
+                                <option value="eğitim araştırma">Eğitim Araştırma</option>
+                                <option value="devlet">Devlet</option>
+                                <option value="ilçe">İlçe</option>
+                                <option value="üniversite">Üniversite</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tel Doktor</label>
+                            <input type="tel" name="telefonDoktor" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tel Satınalma</label>
+                            <input type="tel" name="telefonSatinalma" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tel Biyomedikal</label>
+                            <input type="tel" name="telefonBiyomedikal" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Mail Doktor</label>
+                            <input type="email" name="mailDoktor" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Mail Satınalma</label>
+                            <input type="email" name="mailSatinalma" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Mail Biyomedikal</label>
+                            <input type="email" name="mailBiyomedikal" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
+                        ➕ Hastane Ekle
+                    </button>
+                </form>
+                <div id="contact-success" class="mt-4 text-green-600 p-4 bg-green-50 rounded" style="display:none;"></div>
+                <div id="contact-error" class="mt-4 text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Raw Data Tab -->
+        <div id="content-rawdata" class="space-y-6" style="display:none;">
+            <!-- Raw Data Table -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">Raw Data Listesi</h2>
+                    <button onclick="loadRawData()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        🔄 Yenile
+                    </button>
+                </div>
+                <div id="rawdata-loading" class="text-center py-8" style="display:none;">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                </div>
+                <div id="rawdata-error" class="text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
+                <div class="table-container">
+                    <table id="rawdata-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">List Name</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Short URL</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Full URL</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rawdata-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Add Raw Data Form -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Yeni Raw Data Ekle</h2>
+                <form id="add-rawdata-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                            <input type="text" name="title" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">List Name *</label>
+                            <input type="text" name="listName" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Short URL</label>
+                            <input type="url" name="shortUrl" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Full URL</label>
+                            <input type="url" name="fullUrl" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
+                        ➕ Raw Data Ekle
+                    </button>
+                </form>
+                <div id="rawdata-success" class="mt-4 text-green-600 p-4 bg-green-50 rounded" style="display:none;"></div>
+                <div id="rawdata-error-form" class="mt-4 text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
+            </div>
         </div>
     </div>
 
     <script>
         const API_URL = 'http://localhost:3000/api';
 
-        async function loadContacts() {
-            const listDiv = document.getElementById('contacts-list');
-            const loadingDiv = document.getElementById('loading');
-            const errorDiv = document.getElementById('error');
+        // Tab Management
+        function showTab(tab) {
+            // Hide all tabs
+            document.getElementById('content-contacts').style.display = 'none';
+            document.getElementById('content-rawdata').style.display = 'none';
 
-            listDiv.innerHTML = '';
+            // Remove active class from all tabs
+            document.getElementById('tab-contacts').classList.remove('tab-active');
+            document.getElementById('tab-rawdata').classList.remove('tab-active');
+
+            // Show selected tab
+            document.getElementById('content-' + tab).style.display = 'block';
+            document.getElementById('tab-' + tab).classList.add('tab-active');
+
+            // Load data
+            if (tab === 'contacts') {
+                loadContacts();
+            } else if (tab === 'rawdata') {
+                loadRawData();
+            }
+        }
+
+        // Contacts Functions
+        async function loadContacts() {
+            const tbody = document.getElementById('contacts-tbody');
+            const loadingDiv = document.getElementById('contacts-loading');
+            const errorDiv = document.getElementById('contacts-error');
+
+            tbody.innerHTML = '';
             errorDiv.style.display = 'none';
             loadingDiv.style.display = 'block';
 
@@ -128,34 +254,50 @@
                 loadingDiv.style.display = 'none';
 
                 if (contacts.length === 0) {
-                    listDiv.innerHTML = '<p class="text-gray-500 text-center py-4">Henüz hastane kaydı yok</p>';
+                    tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-8 text-center text-gray-500">Henüz hastane kaydı yok</td></tr>';
                     return;
                 }
 
                 contacts.forEach(contact => {
-                    const div = document.createElement('div');
-                    div.className = 'p-4 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100';
-                    div.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="font-bold text-lg">${contact.hastaneAdi}</h3>
-                                <p class="text-gray-600">${contact.il} - ${contact.hastaneTuru}</p>
-                                ${contact.altTur ? `<p class="text-sm text-gray-500">${contact.altTur}</p>` : ''}
-                                ${contact.telefonDoktor ? `<p class="text-sm mt-2"><span class="font-medium">Doktor:</span> ${contact.telefonDoktor}</p>` : ''}
-                                ${contact.mailDoktor ? `<p class="text-sm"><span class="font-medium">Mail:</span> ${contact.mailDoktor}</p>` : ''}
-                            </div>
-                            <button onclick="deleteContact('${contact.id}')" class="text-red-600 hover:text-red-800 px-3 py-1 text-sm">
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">${contact.hastaneAdi}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${contact.il}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(contact.hastaneTuru)}">
+                                ${contact.hastaneTuru}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${contact.altTur || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${contact.telefonDoktor || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${contact.telefonSatinalma || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${contact.telefonBiyomedikal || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${contact.mailDoktor || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${contact.mailSatinalma || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${contact.mailBiyomedikal || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-right">
+                            <button onclick="deleteContact('${contact.id}')" class="text-red-600 hover:text-red-800 font-medium">
                                 Sil
                             </button>
-                        </div>
+                        </td>
                     `;
-                    listDiv.appendChild(div);
+                    tbody.appendChild(row);
                 });
             } catch (error) {
                 loadingDiv.style.display = 'none';
                 errorDiv.style.display = 'block';
                 errorDiv.textContent = 'Hastaneler yüklenirken hata oluştu: ' + error.message;
             }
+        }
+
+        function getTypeColor(type) {
+            const colors = {
+                'kamu': 'bg-blue-100 text-blue-800',
+                'özel': 'bg-green-100 text-green-800',
+                'muayenehane': 'bg-purple-100 text-purple-800'
+            };
+            return colors[type] || 'bg-gray-100 text-gray-800';
         }
 
         async function deleteContact(id) {
@@ -174,8 +316,8 @@
 
         document.getElementById('add-contact-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const successDiv = document.getElementById('add-success');
-            const errorDiv = document.getElementById('add-error');
+            const successDiv = document.getElementById('contact-success');
+            const errorDiv = document.getElementById('contact-error');
 
             successDiv.style.display = 'none';
             errorDiv.style.display = 'none';
@@ -212,8 +354,114 @@
             }
         });
 
-        // Sayfa yüklendiğinde hastaneleri yükle
-        window.addEventListener('load', loadContacts);
+        // Raw Data Functions
+        async function loadRawData() {
+            const tbody = document.getElementById('rawdata-tbody');
+            const loadingDiv = document.getElementById('rawdata-loading');
+            const errorDiv = document.getElementById('rawdata-error');
+
+            tbody.innerHTML = '';
+            errorDiv.style.display = 'none';
+            loadingDiv.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_URL}/raw-data`);
+                if (!response.ok) throw new Error('API hatası');
+
+                const rawData = await response.json();
+                loadingDiv.style.display = 'none';
+
+                if (rawData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">Henüz raw data kaydı yok</td></tr>';
+                    return;
+                }
+
+                rawData.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">${item.title}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${item.description || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${item.listName}</td>
+                        <td class="px-4 py-3 text-sm text-blue-600">
+                            ${item.shortUrl ? `<a href="${item.shortUrl}" target="_blank" class="hover:underline">Link</a>` : '-'}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-blue-600">
+                            ${item.fullUrl ? `<a href="${item.fullUrl}" target="_blank" class="hover:underline">Link</a>` : '-'}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-right">
+                            <button onclick="deleteRawData('${item.id}')" class="text-red-600 hover:text-red-800 font-medium">
+                                Sil
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = 'Raw data yüklenirken hata oluştu: ' + error.message;
+            }
+        }
+
+        async function deleteRawData(id) {
+            if (!confirm('Bu raw data kaydını silmek istediğinize emin misiniz?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/raw-data/${id}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) throw new Error('Silme hatası');
+                loadRawData();
+            } catch (error) {
+                alert('Raw data silinirken hata oluştu: ' + error.message);
+            }
+        }
+
+        document.getElementById('add-rawdata-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const successDiv = document.getElementById('rawdata-success');
+            const errorDiv = document.getElementById('rawdata-error-form');
+
+            successDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+
+            const formData = new FormData(e.target);
+            const data = {};
+            formData.forEach((value, key) => {
+                if (value) data[key] = value;
+            });
+
+            try {
+                const response = await fetch(`${API_URL}/raw-data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Ekleme hatası');
+                }
+
+                successDiv.textContent = '✓ Raw data başarıyla eklendi!';
+                successDiv.style.display = 'block';
+                e.target.reset();
+                loadRawData();
+
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                errorDiv.textContent = '✗ Hata: ' + error.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        // Load contacts on page load
+        window.addEventListener('load', () => {
+            showTab('contacts');
+        });
     </script>
 </body>
 </html>
