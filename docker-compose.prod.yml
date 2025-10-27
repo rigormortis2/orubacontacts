@@ -1,0 +1,76 @@
+version: '3.8'
+
+# Production ortamı için Docker Compose override
+# Kullanım: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  database:
+    restart: always
+    # Production'da database port'unu dışarı açma (güvenlik)
+    ports: []
+    environment:
+      # Production'da güçlü şifreler kullan
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-orubacontacts}
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  backend:
+    restart: always
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@database:5432/${POSTGRES_DB:-orubacontacts}
+      PORT: 3000
+      NODE_ENV: production
+    # Volumes'leri kaldır (production'da source code mount etme)
+    volumes:
+      - ./backend/imports:/app/imports
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  frontend:
+    restart: always
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:3000}
+    # Volumes'leri kaldır
+    volumes: []
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+networks:
+  orubacontacts-network:
+    driver: bridge
+    # Production'da network güvenliği
+    driver_opts:
+      com.docker.network.bridge.name: orubacontacts-br
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"

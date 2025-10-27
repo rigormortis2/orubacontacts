@@ -1,0 +1,34 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Contact {
+  id                String   @id @default(uuid())
+  hastaneAdi        String   @unique // Hastane adı - Primary field
+  il                String   // İl
+  hastaneTuru       String   // kamu, özel, muayenehane
+  altTur            String?  // eğitim araştırma, devlet, ilçe, üniversite (sadece kamu için)
+
+  // Telefon bilgileri
+  telefonDoktor     String?
+  telefonSatinalma  String?
+  telefonBiyomedikal String?
+
+  // Mail bilgileri
+  mailDoktor        String?
+  mailSatinalma     String?
+  mailBiyomedikal   String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("contacts")
+}

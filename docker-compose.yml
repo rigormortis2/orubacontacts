@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Veritabanı Servisi
+  database:
+    image: postgres:16-alpine
+    container_name: orubacontacts-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: orubacontacts
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - orubacontacts-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API Servisi
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: orubacontacts-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@database:5432/orubacontacts
+      PORT: 3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - orubacontacts-network
+    volumes:
+      # Excel import için dış volume (opsiyonel)
+      - ./backend/imports:/app/imports
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Web Servisi
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: orubacontacts-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - orubacontacts-network
+    environment:
+      - REACT_APP_API_URL=http://localhost:3000
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Network tanımlaması - Servisler arası iletişim
+networks:
+  orubacontacts-network:
+    driver: bridge
+    name: orubacontacts-network
+
+# Volume tanımlaması - PostgreSQL data persistence
+volumes:
+  postgres_data:
+    driver: local
+    name: orubacontacts-postgres-data
