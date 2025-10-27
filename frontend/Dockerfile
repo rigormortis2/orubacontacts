@@ -1,23 +1,5 @@
-# Multi-stage Dockerfile for Frontend
-# Stage 1: Build
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
-COPY . .
-
-# Build application
-RUN npm run build
-
-# Stage 2: Production with Nginx
-FROM nginx:alpine AS production
+# Simple static HTML frontend with Nginx
+FROM nginx:alpine
 
 # Copy custom nginx configuration
 COPY <<EOF /etc/nginx/conf.d/default.conf
@@ -71,8 +53,8 @@ server {
 }
 EOF
 
-# Copy built application from builder stage
-COPY --from=builder /app/build /usr/share/nginx/html
+# Copy static HTML file
+COPY index.html /usr/share/nginx/html/
 
 # Install wget for healthcheck
 RUN apk add --no-cache wget

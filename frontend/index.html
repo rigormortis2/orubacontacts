@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oruba Contacts - API Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Oruba Contacts</h1>
+            <p class="text-gray-600">Hastane İletişim Bilgileri Yönetim Sistemi</p>
+            <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p class="text-green-800 font-medium">✓ Backend API çalışıyor!</p>
+                <p class="text-sm text-green-600 mt-1">API Base URL: http://localhost:3000/api</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">API Endpoints</h2>
+            <div class="space-y-2">
+                <div class="p-3 bg-gray-50 rounded border">
+                    <span class="font-mono text-sm text-blue-600">GET</span>
+                    <span class="ml-2 font-mono text-sm">/api/contacts</span>
+                    <span class="ml-2 text-gray-500">- Tüm hastaneleri listele</span>
+                </div>
+                <div class="p-3 bg-gray-50 rounded border">
+                    <span class="font-mono text-sm text-green-600">POST</span>
+                    <span class="ml-2 font-mono text-sm">/api/contacts</span>
+                    <span class="ml-2 text-gray-500">- Yeni hastane ekle</span>
+                </div>
+                <div class="p-3 bg-gray-50 rounded border">
+                    <span class="font-mono text-sm text-yellow-600">PUT</span>
+                    <span class="ml-2 font-mono text-sm">/api/contacts/:id</span>
+                    <span class="ml-2 text-gray-500">- Hastane güncelle</span>
+                </div>
+                <div class="p-3 bg-gray-50 rounded border">
+                    <span class="font-mono text-sm text-red-600">DELETE</span>
+                    <span class="ml-2 font-mono text-sm">/api/contacts/:id</span>
+                    <span class="ml-2 text-gray-500">- Hastane sil</span>
+                </div>
+                <div class="p-3 bg-gray-50 rounded border">
+                    <span class="font-mono text-sm text-blue-600">GET</span>
+                    <span class="ml-2 font-mono text-sm">/api/raw-data</span>
+                    <span class="ml-2 text-gray-500">- Tüm raw data'ları listele</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Hastane Listesi</h2>
+            <button onclick="loadContacts()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
+                Hastaneleri Yükle
+            </button>
+            <div id="contacts-list" class="space-y-2"></div>
+            <div id="loading" class="text-gray-500 text-center py-4" style="display:none;">
+                Yükleniyor...
+            </div>
+            <div id="error" class="text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Yeni Hastane Ekle</h2>
+            <form id="add-contact-form" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Hastane Adı *</label>
+                        <input type="text" name="hastaneAdi" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">İl *</label>
+                        <input type="text" name="il" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Hastane Türü *</label>
+                        <select name="hastaneTuru" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                            <option value="kamu">Kamu</option>
+                            <option value="özel">Özel</option>
+                            <option value="muayenehane">Muayenehane</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Alt Tür</label>
+                        <select name="altTur" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Seçiniz</option>
+                            <option value="eğitim araştırma">Eğitim Araştırma</option>
+                            <option value="devlet">Devlet</option>
+                            <option value="ilçe">İlçe</option>
+                            <option value="üniversite">Üniversite</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefon Doktor</label>
+                        <input type="tel" name="telefonDoktor" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mail Doktor</label>
+                        <input type="email" name="mailDoktor" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
+                    Hastane Ekle
+                </button>
+            </form>
+            <div id="add-success" class="mt-4 text-green-600 p-4 bg-green-50 rounded" style="display:none;"></div>
+            <div id="add-error" class="mt-4 text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+
+        async function loadContacts() {
+            const listDiv = document.getElementById('contacts-list');
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+
+            listDiv.innerHTML = '';
+            errorDiv.style.display = 'none';
+            loadingDiv.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_URL}/contacts`);
+                if (!response.ok) throw new Error('API hatası');
+
+                const contacts = await response.json();
+                loadingDiv.style.display = 'none';
+
+                if (contacts.length === 0) {
+                    listDiv.innerHTML = '<p class="text-gray-500 text-center py-4">Henüz hastane kaydı yok</p>';
+                    return;
+                }
+
+                contacts.forEach(contact => {
+                    const div = document.createElement('div');
+                    div.className = 'p-4 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100';
+                    div.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-lg">${contact.hastaneAdi}</h3>
+                                <p class="text-gray-600">${contact.il} - ${contact.hastaneTuru}</p>
+                                ${contact.altTur ? `<p class="text-sm text-gray-500">${contact.altTur}</p>` : ''}
+                                ${contact.telefonDoktor ? `<p class="text-sm mt-2"><span class="font-medium">Doktor:</span> ${contact.telefonDoktor}</p>` : ''}
+                                ${contact.mailDoktor ? `<p class="text-sm"><span class="font-medium">Mail:</span> ${contact.mailDoktor}</p>` : ''}
+                            </div>
+                            <button onclick="deleteContact('${contact.id}')" class="text-red-600 hover:text-red-800 px-3 py-1 text-sm">
+                                Sil
+                            </button>
+                        </div>
+                    `;
+                    listDiv.appendChild(div);
+                });
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = 'Hastaneler yüklenirken hata oluştu: ' + error.message;
+            }
+        }
+
+        async function deleteContact(id) {
+            if (!confirm('Bu hastaneyi silmek istediğinize emin misiniz?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/contacts/${id}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) throw new Error('Silme hatası');
+                loadContacts();
+            } catch (error) {
+                alert('Hastane silinirken hata oluştu: ' + error.message);
+            }
+        }
+
+        document.getElementById('add-contact-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const successDiv = document.getElementById('add-success');
+            const errorDiv = document.getElementById('add-error');
+
+            successDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+
+            const formData = new FormData(e.target);
+            const data = {};
+            formData.forEach((value, key) => {
+                if (value) data[key] = value;
+            });
+
+            try {
+                const response = await fetch(`${API_URL}/contacts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Ekleme hatası');
+                }
+
+                successDiv.textContent = '✓ Hastane başarıyla eklendi!';
+                successDiv.style.display = 'block';
+                e.target.reset();
+                loadContacts();
+
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                errorDiv.textContent = '✗ Hata: ' + error.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        // Sayfa yüklendiğinde hastaneleri yükle
+        window.addEventListener('load', loadContacts);
+    </script>
+</body>
+</html>
