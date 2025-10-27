@@ -10,7 +10,8 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "import:excel": "ts-node src/scripts/importExcel.ts",
-    "create:template": "ts-node src/scripts/createExcelTemplate.ts"
+    "create:template": "ts-node src/scripts/createExcelTemplate.ts",
+    "import:rawdata": "ts-node src/scripts/importRawData.ts"
   },
   "keywords": [],
   "author": "",

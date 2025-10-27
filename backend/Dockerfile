@@ -1,8 +1,14 @@
 # Multi-stage Dockerfile for Node.js Backend
 # Stage 1: Dependencies
-FROM node:20-alpine AS dependencies
+FROM node:20-slim AS dependencies
 
 WORKDIR /app
+
+# Install required system dependencies including OpenSSL
+RUN apt-get update && apt-get install -y \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
@@ -15,7 +21,7 @@ RUN npm ci
 RUN npx prisma generate
 
 # Stage 2: Build
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -30,10 +36,15 @@ COPY . .
 RUN npm run build
 
 # Stage 3: Production
-FROM node:20-alpine AS production
+FROM node:20-slim AS production
 
-# Install wget for healthcheck
-RUN apk add --no-cache wget
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    netcat-openbsd \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -70,10 +81,12 @@ COPY --chown=node:node <<EOF /app/entrypoint.sh
 set -e
 
 echo "Waiting for database to be ready..."
-until wget --spider --quiet http://database:5432 2>/dev/null || nc -z database 5432; do
+until nc -z database 5432 2>/dev/null; do
+  echo "Database is unavailable - waiting..."
   sleep 2
 done
 
+echo "Database is ready!"
 echo "Running database migrations..."
 npx prisma migrate deploy
 
