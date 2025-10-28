@@ -6,14 +6,12 @@ const router = Router();
 
 // Validation rules
 const contactValidation = [
-  body('hastaneAdi').notEmpty().withMessage('Hastane adı zorunludur'),
-  body('il').notEmpty().withMessage('İl zorunludur'),
-  body('hastaneTuru')
-    .isIn(['kamu', 'özel', 'muayenehane'])
-    .withMessage('Geçerli bir hastane türü seçiniz'),
+  body('trelloBaslik').notEmpty().withMessage('Trello başlık zorunludur'),
+  body('hospitalId').optional().isUUID().withMessage('Geçerli bir hospital ID giriniz'),
 ];
 
 // Routes
+router.get('/stats', contactController.getContactStats); // Stats endpoint must be before /:id
 router.get('/', contactController.getAllContacts);
 router.get('/:id', contactController.getContactById);
 router.post('/', contactValidation, contactController.createContact);

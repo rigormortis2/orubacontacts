@@ -7,11 +7,31 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .tab-active {
-            @apply border-b-2 border-blue-600 text-blue-600;
+            border-b-2px solid #2563eb;
+            color: #2563eb;
         }
         .table-container {
             max-height: 600px;
-            overflow-y: auto;
+            overflow: auto;
+        }
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+        .sortable:hover {
+            background-color: #f3f4f6;
+        }
+        .sort-icon::after {
+            content: ' ↕';
+            opacity: 0.3;
+        }
+        .sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+        .sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
         }
     </style>
 </head>
@@ -20,28 +40,35 @@
         <!-- Header -->
         <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
             <h1 class="text-3xl font-bold text-gray-900 mb-2">Oruba Contacts</h1>
-            <p class="text-gray-600">Hastane İletişim Bilgileri ve Raw Data Yönetim Sistemi</p>
-            <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <p class="text-green-800 font-medium">✓ Backend API çalışıyor!</p>
-                <p class="text-sm text-green-600 mt-1">API Base URL: http://localhost:3000/api</p>
-            </div>
+            <p class="text-gray-600">Hastane İletişim Bilgileri Yönetim Sistemi</p>
         </div>
 
         <!-- Tabs -->
         <div class="bg-white rounded-lg shadow-lg mb-6">
             <div class="flex border-b">
                 <button onclick="showTab('contacts')" id="tab-contacts" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600 tab-active">
-                    Hastaneler
+                    Oruba Contacts
+                </button>
+                <button onclick="showTab('references')" id="tab-references" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600">
+                    Hospitals <span id="hospitals-count">(664)</span>
                 </button>
                 <button onclick="showTab('rawdata')" id="tab-rawdata" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600">
-                    Raw Data
+                    Trello Raw Data
+                </button>
+                <button onclick="showTab('jobtitles')" id="tab-jobtitles" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600">
+                    Job Titles (4)
+                </button>
+                <button onclick="showTab('hospitaltypes')" id="tab-hospitaltypes" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600">
+                    Hospital Types (3)
+                </button>
+                <button onclick="showTab('hospitalsubtypes')" id="tab-hospitalsubtypes" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600">
+                    Hospital Subtypes (5)
                 </button>
             </div>
         </div>
 
         <!-- Contacts Tab -->
         <div id="content-contacts" class="space-y-6">
-            <!-- Contacts Table -->
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-900">Hastane Listesi</h2>
@@ -49,102 +76,94 @@
                         🔄 Yenile
                     </button>
                 </div>
+
+                <!-- Search Box -->
+                <div class="mb-4">
+                    <input
+                        type="text"
+                        id="search-contacts"
+                        placeholder="🔍 Ara... (trello başlık, hastane adı, il, telefon, mail)"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onkeyup="filterContacts()"
+                    >
+                </div>
+
                 <div id="contacts-loading" class="text-center py-8" style="display:none;">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                     <p class="mt-4 text-gray-500">Yükleniyor...</p>
                 </div>
-                <div id="contacts-error" class="text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
+                <div id="contacts-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
+
                 <div class="table-container">
                     <table id="contacts-table" class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hastane Adı</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İl</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tür</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alt Tür</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tel Doktor</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tel Satınalma</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tel Biyomedikal</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mail Doktor</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mail Satınalma</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mail Biyomedikal</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">İşlem</th>
+                                <th onclick="sortTable('contacts', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trello Başlık</th>
+                                <th onclick="sortTable('contacts', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hastane Adı</th>
+                                <th onclick="sortTable('contacts', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İl</th>
+                                <th onclick="sortTable('contacts', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tür</th>
+                                <th onclick="sortTable('contacts', 4)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alt Tür</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İletişim Bilgileri</th>
                             </tr>
                         </thead>
                         <tbody id="contacts-tbody" class="bg-white divide-y divide-gray-200">
                         </tbody>
                     </table>
                 </div>
+                <div id="contacts-count" class="mt-4 text-sm text-gray-600"></div>
             </div>
+        </div>
 
-            <!-- Add Contact Form -->
+        <!-- Wikipedia References Tab -->
+        <div id="content-references" class="space-y-6" style="display:none;">
             <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Yeni Hastane Ekle</h2>
-                <form id="add-contact-form" class="space-y-4">
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Hastane Adı *</label>
-                            <input type="text" name="hastaneAdi" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">İl *</label>
-                            <input type="text" name="il" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Hastane Türü *</label>
-                            <select name="hastaneTuru" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                                <option value="kamu">Kamu</option>
-                                <option value="özel">Özel</option>
-                                <option value="muayenehane">Muayenehane</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Alt Tür</label>
-                            <select name="altTur" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">Seçiniz</option>
-                                <option value="eğitim araştırma">Eğitim Araştırma</option>
-                                <option value="devlet">Devlet</option>
-                                <option value="ilçe">İlçe</option>
-                                <option value="üniversite">Üniversite</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tel Doktor</label>
-                            <input type="tel" name="telefonDoktor" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tel Satınalma</label>
-                            <input type="tel" name="telefonSatinalma" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tel Biyomedikal</label>
-                            <input type="tel" name="telefonBiyomedikal" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Mail Doktor</label>
-                            <input type="email" name="mailDoktor" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Mail Satınalma</label>
-                            <input type="email" name="mailSatinalma" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Mail Biyomedikal</label>
-                            <input type="email" name="mailBiyomedikal" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                    </div>
-                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
-                        ➕ Hastane Ekle
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">Wikipedia Referans Hastaneler</h2>
+                    <button onclick="loadReferences()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        🔄 Yenile
                     </button>
-                </form>
-                <div id="contact-success" class="mt-4 text-green-600 p-4 bg-green-50 rounded" style="display:none;"></div>
-                <div id="contact-error" class="mt-4 text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
+                </div>
+
+                <!-- Stats -->
+                <div id="references-stats" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"></div>
+
+                <!-- Search Box -->
+                <div class="mb-4">
+                    <input
+                        type="text"
+                        id="search-references"
+                        placeholder="🔍 Ara... (hastane adı, il)"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onkeyup="filterReferences()"
+                    >
+                </div>
+
+                <div id="references-loading" class="text-center py-8" style="display:none;">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                </div>
+                <div id="references-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
+
+                <div class="table-container">
+                    <table id="references-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th onclick="sortTable('references', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hastane Adı</th>
+                                <th onclick="sortTable('references', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İl</th>
+                                <th onclick="sortTable('references', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tür</th>
+                                <th onclick="sortTable('references', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alt Tür</th>
+                            </tr>
+                        </thead>
+                        <tbody id="references-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="references-count" class="mt-4 text-sm text-gray-600"></div>
             </div>
         </div>
 
         <!-- Raw Data Tab -->
         <div id="content-rawdata" class="space-y-6" style="display:none;">
-            <!-- Raw Data Table -->
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-900">Raw Data Listesi</h2>
@@ -152,316 +171,827 @@
                         🔄 Yenile
                     </button>
                 </div>
+
+                <!-- Search Box -->
+                <div class="mb-4">
+                    <input
+                        type="text"
+                        id="search-rawdata"
+                        placeholder="🔍 Ara... (title, description, list_name)"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onkeyup="filterRawData()"
+                    >
+                </div>
+
                 <div id="rawdata-loading" class="text-center py-8" style="display:none;">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                     <p class="mt-4 text-gray-500">Yükleniyor...</p>
                 </div>
-                <div id="rawdata-error" class="text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
+                <div id="rawdata-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
+
                 <div class="table-container">
                     <table id="rawdata-table" class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">List Name</th>
+                                <th onclick="sortTable('rawdata', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                                <th onclick="sortTable('rawdata', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                                <th onclick="sortTable('rawdata', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">List Name</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Short URL</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Full URL</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">İşlem</th>
                             </tr>
                         </thead>
                         <tbody id="rawdata-tbody" class="bg-white divide-y divide-gray-200">
                         </tbody>
                     </table>
                 </div>
+                <div id="rawdata-count" class="mt-4 text-sm text-gray-600"></div>
             </div>
+        </div>
 
-            <!-- Add Raw Data Form -->
+        <!-- Job Titles Tab -->
+        <div id="content-jobtitles" class="space-y-6" style="display:none;">
             <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Yeni Raw Data Ekle</h2>
-                <form id="add-rawdata-form" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                            <input type="text" name="title" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">List Name *</label>
-                            <input type="text" name="listName" required class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <textarea name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Short URL</label>
-                            <input type="url" name="shortUrl" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Full URL</label>
-                            <input type="url" name="fullUrl" class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                    </div>
-                    <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
-                        ➕ Raw Data Ekle
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">İş Unvanları</h2>
+                    <button onclick="loadJobTitles()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        🔄 Yenile
                     </button>
-                </form>
-                <div id="rawdata-success" class="mt-4 text-green-600 p-4 bg-green-50 rounded" style="display:none;"></div>
-                <div id="rawdata-error-form" class="mt-4 text-red-600 p-4 bg-red-50 rounded" style="display:none;"></div>
+                </div>
+
+                <!-- Stats -->
+                <div id="jobtitles-stats" class="grid grid-cols-3 gap-4 mb-4"></div>
+
+                <!-- Search Box -->
+                <div class="mb-4">
+                    <input
+                        type="text"
+                        id="search-jobtitles"
+                        placeholder="🔍 Ara... (unvan, slug, açıklama)"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onkeyup="filterJobTitles()"
+                    >
+                </div>
+
+                <div id="jobtitles-loading" class="text-center py-8" style="display:none;">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                </div>
+                <div id="jobtitles-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
+
+                <div class="table-container">
+                    <table id="jobtitles-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th onclick="sortTable('jobtitles', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unvan</th>
+                                <th onclick="sortTable('jobtitles', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
+                                <th onclick="sortTable('jobtitles', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Açıklama</th>
+                                <th onclick="sortTable('jobtitles', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobtitles-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="jobtitles-count" class="mt-4 text-sm text-gray-600"></div>
+            </div>
+        </div>
+
+        <!-- Hospital Types Tab -->
+        <div id="content-hospitaltypes" class="space-y-6" style="display:none;">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">Hastane Türleri</h2>
+                    <button onclick="loadHospitalTypes()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        🔄 Yenile
+                    </button>
+                </div>
+
+                <!-- Stats -->
+                <div id="hospitaltypes-stats" class="grid grid-cols-3 gap-4 mb-4"></div>
+
+                <!-- Search Box -->
+                <div class="mb-4">
+                    <input
+                        type="text"
+                        id="search-hospitaltypes"
+                        placeholder="🔍 Ara... (tür adı, slug, açıklama)"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onkeyup="filterHospitalTypes()"
+                    >
+                </div>
+
+                <div id="hospitaltypes-loading" class="text-center py-8" style="display:none;">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                </div>
+                <div id="hospitaltypes-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
+
+                <div class="table-container">
+                    <table id="hospitaltypes-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th onclick="sortTable('hospitaltypes', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tür Adı</th>
+                                <th onclick="sortTable('hospitaltypes', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
+                                <th onclick="sortTable('hospitaltypes', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Açıklama</th>
+                                <th onclick="sortTable('hospitaltypes', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hospitaltypes-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="hospitaltypes-count" class="mt-4 text-sm text-gray-600"></div>
+            </div>
+        </div>
+
+        <!-- Hospital Subtypes Tab -->
+        <div id="content-hospitalsubtypes" class="space-y-6" style="display:none;">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">Hastane Alt Türleri</h2>
+                    <button onclick="loadHospitalSubtypes()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        🔄 Yenile
+                    </button>
+                </div>
+
+                <!-- Stats -->
+                <div id="hospitalsubtypes-stats" class="grid grid-cols-4 gap-4 mb-4"></div>
+
+                <!-- Search Box -->
+                <div class="mb-4">
+                    <input
+                        type="text"
+                        id="search-hospitalsubtypes"
+                        placeholder="🔍 Ara... (alt tür adı, slug, ana tür, açıklama)"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onkeyup="filterHospitalSubtypes()"
+                    >
+                </div>
+
+                <div id="hospitalsubtypes-loading" class="text-center py-8" style="display:none;">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                </div>
+                <div id="hospitalsubtypes-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
+
+                <div class="table-container">
+                    <table id="hospitalsubtypes-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th onclick="sortTable('hospitalsubtypes', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alt Tür Adı</th>
+                                <th onclick="sortTable('hospitalsubtypes', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
+                                <th onclick="sortTable('hospitalsubtypes', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ana Tür</th>
+                                <th onclick="sortTable('hospitalsubtypes', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Açıklama</th>
+                                <th onclick="sortTable('hospitalsubtypes', 4)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hospitalsubtypes-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="hospitalsubtypes-count" class="mt-4 text-sm text-gray-600"></div>
             </div>
         </div>
     </div>
 
     <script>
-        const API_URL = 'http://localhost:3000/api';
+        // API Base URL - Use relative path for nginx proxy
+        const API_URL = '/api';
 
-        // Tab Management
+        let contactsData = [];
+        let rawDataData = [];
+        let referencesData = [];
+        let jobTitlesData = [];
+        let hospitalTypesData = [];
+        let hospitalSubtypesData = [];
+        let currentTab = 'contacts';
+        let sortState = { table: null, column: null, direction: 'asc' };
+
+        // Show tab
         function showTab(tab) {
-            // Hide all tabs
-            document.getElementById('content-contacts').style.display = 'none';
-            document.getElementById('content-rawdata').style.display = 'none';
+            currentTab = tab;
+            document.getElementById('content-contacts').style.display = tab === 'contacts' ? 'block' : 'none';
+            document.getElementById('content-rawdata').style.display = tab === 'rawdata' ? 'block' : 'none';
+            document.getElementById('content-references').style.display = tab === 'references' ? 'block' : 'none';
+            document.getElementById('content-jobtitles').style.display = tab === 'jobtitles' ? 'block' : 'none';
+            document.getElementById('content-hospitaltypes').style.display = tab === 'hospitaltypes' ? 'block' : 'none';
+            document.getElementById('content-hospitalsubtypes').style.display = tab === 'hospitalsubtypes' ? 'block' : 'none';
 
-            // Remove active class from all tabs
-            document.getElementById('tab-contacts').classList.remove('tab-active');
-            document.getElementById('tab-rawdata').classList.remove('tab-active');
+            document.getElementById('tab-contacts').classList.toggle('tab-active', tab === 'contacts');
+            document.getElementById('tab-rawdata').classList.toggle('tab-active', tab === 'rawdata');
+            document.getElementById('tab-references').classList.toggle('tab-active', tab === 'references');
+            document.getElementById('tab-jobtitles').classList.toggle('tab-active', tab === 'jobtitles');
+            document.getElementById('tab-hospitaltypes').classList.toggle('tab-active', tab === 'hospitaltypes');
+            document.getElementById('tab-hospitalsubtypes').classList.toggle('tab-active', tab === 'hospitalsubtypes');
 
-            // Show selected tab
-            document.getElementById('content-' + tab).style.display = 'block';
-            document.getElementById('tab-' + tab).classList.add('tab-active');
-
-            // Load data
-            if (tab === 'contacts') {
+            if (tab === 'contacts' && contactsData.length === 0) {
                 loadContacts();
-            } else if (tab === 'rawdata') {
+            } else if (tab === 'rawdata' && rawDataData.length === 0) {
                 loadRawData();
+            } else if (tab === 'references' && referencesData.length === 0) {
+                loadReferences();
+            } else if (tab === 'jobtitles' && jobTitlesData.length === 0) {
+                loadJobTitles();
+            } else if (tab === 'hospitaltypes' && hospitalTypesData.length === 0) {
+                loadHospitalTypes();
+            } else if (tab === 'hospitalsubtypes' && hospitalSubtypesData.length === 0) {
+                loadHospitalSubtypes();
             }
         }
 
-        // Contacts Functions
+        // Load contacts
         async function loadContacts() {
+            const loading = document.getElementById('contacts-loading');
+            const error = document.getElementById('contacts-error');
             const tbody = document.getElementById('contacts-tbody');
-            const loadingDiv = document.getElementById('contacts-loading');
-            const errorDiv = document.getElementById('contacts-error');
 
+            loading.style.display = 'block';
+            error.style.display = 'none';
             tbody.innerHTML = '';
-            errorDiv.style.display = 'none';
-            loadingDiv.style.display = 'block';
 
             try {
                 const response = await fetch(`${API_URL}/contacts`);
-                if (!response.ok) throw new Error('API hatası');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-                const contacts = await response.json();
-                loadingDiv.style.display = 'none';
-
-                if (contacts.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-8 text-center text-gray-500">Henüz hastane kaydı yok</td></tr>';
-                    return;
-                }
-
-                contacts.forEach(contact => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50';
-                    row.innerHTML = `
-                        <td class="px-4 py-3 text-sm font-medium text-gray-900">${contact.hastaneAdi}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">${contact.il}</td>
-                        <td class="px-4 py-3 text-sm">
-                            <span class="px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(contact.hastaneTuru)}">
-                                ${contact.hastaneTuru}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-600">${contact.altTur || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">${contact.telefonDoktor || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">${contact.telefonSatinalma || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">${contact.telefonBiyomedikal || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">${contact.mailDoktor || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">${contact.mailSatinalma || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">${contact.mailBiyomedikal || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-right">
-                            <button onclick="deleteContact('${contact.id}')" class="text-red-600 hover:text-red-800 font-medium">
-                                Sil
-                            </button>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } catch (error) {
-                loadingDiv.style.display = 'none';
-                errorDiv.style.display = 'block';
-                errorDiv.textContent = 'Hastaneler yüklenirken hata oluştu: ' + error.message;
+                contactsData = await response.json();
+                displayContacts(contactsData);
+                document.getElementById('contacts-count').textContent = `Toplam ${contactsData.length} hastane`;
+            } catch (err) {
+                error.textContent = 'Hastaneler yüklenirken hata oluştu: ' + err.message;
+                error.style.display = 'block';
+                console.error('Error loading contacts:', err);
+            } finally {
+                loading.style.display = 'none';
             }
         }
 
-        function getTypeColor(type) {
-            const colors = {
-                'kamu': 'bg-blue-100 text-blue-800',
-                'özel': 'bg-green-100 text-green-800',
-                'muayenehane': 'bg-purple-100 text-purple-800'
-            };
-            return colors[type] || 'bg-gray-100 text-gray-800';
+        // Display contacts
+        function displayContacts(data) {
+            const tbody = document.getElementById('contacts-tbody');
+            tbody.innerHTML = data.map(contact => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm font-medium">${contact.trelloBaslik || ''}</td>
+                    <td class="px-4 py-3 text-sm">${contact.hospital?.hastaneAdi || 'Eşleştirilemedi'}</td>
+                    <td class="px-4 py-3 text-sm">${contact.hospital?.il || '-'}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 rounded text-xs font-medium ${contact.hospital?.type?.name === 'kamu' ? 'bg-green-100 text-green-800' : (contact.hospital?.type?.name === 'özel' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')}">
+                            ${contact.hospital?.type?.displayName || '-'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            ${contact.hospital?.subtype?.displayName || '-'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-400 italic">-</td>
+                </tr>
+            `).join('');
         }
 
-        async function deleteContact(id) {
-            if (!confirm('Bu hastaneyi silmek istediğinize emin misiniz?')) return;
+        // Filter contacts
+        function filterContacts() {
+            const searchText = document.getElementById('search-contacts').value.toLowerCase();
 
-            try {
-                const response = await fetch(`${API_URL}/contacts/${id}`, {
-                    method: 'DELETE'
-                });
-                if (!response.ok) throw new Error('Silme hatası');
-                loadContacts();
-            } catch (error) {
-                alert('Hastane silinirken hata oluştu: ' + error.message);
-            }
-        }
-
-        document.getElementById('add-contact-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const successDiv = document.getElementById('contact-success');
-            const errorDiv = document.getElementById('contact-error');
-
-            successDiv.style.display = 'none';
-            errorDiv.style.display = 'none';
-
-            const formData = new FormData(e.target);
-            const data = {};
-            formData.forEach((value, key) => {
-                if (value) data[key] = value;
+            const filtered = contactsData.filter(contact => {
+                return (
+                    (contact.trelloBaslik || '').toLowerCase().includes(searchText) ||
+                    (contact.hospital?.hastaneAdi || '').toLowerCase().includes(searchText) ||
+                    (contact.hospital?.il || '').toLowerCase().includes(searchText) ||
+                    (contact.hospital?.type?.name || '').toLowerCase().includes(searchText) ||
+                    (contact.hospital?.type?.displayName || '').toLowerCase().includes(searchText) ||
+                    (contact.hospital?.subtype?.name || '').toLowerCase().includes(searchText) ||
+                    (contact.hospital?.subtype?.displayName || '').toLowerCase().includes(searchText)
+                );
             });
 
-            try {
-                const response = await fetch(`${API_URL}/contacts`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+            displayContacts(filtered);
+            document.getElementById('contacts-count').textContent = `${filtered.length} / ${contactsData.length} hastane gösteriliyor`;
+        }
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Ekleme hatası');
-                }
-
-                successDiv.textContent = '✓ Hastane başarıyla eklendi!';
-                successDiv.style.display = 'block';
-                e.target.reset();
-                loadContacts();
-
-                setTimeout(() => {
-                    successDiv.style.display = 'none';
-                }, 3000);
-            } catch (error) {
-                errorDiv.textContent = '✗ Hata: ' + error.message;
-                errorDiv.style.display = 'block';
-            }
-        });
-
-        // Raw Data Functions
+        // Load raw data
         async function loadRawData() {
+            const loading = document.getElementById('rawdata-loading');
+            const error = document.getElementById('rawdata-error');
             const tbody = document.getElementById('rawdata-tbody');
-            const loadingDiv = document.getElementById('rawdata-loading');
-            const errorDiv = document.getElementById('rawdata-error');
 
+            loading.style.display = 'block';
+            error.style.display = 'none';
             tbody.innerHTML = '';
-            errorDiv.style.display = 'none';
-            loadingDiv.style.display = 'block';
 
             try {
                 const response = await fetch(`${API_URL}/raw-data`);
-                if (!response.ok) throw new Error('API hatası');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-                const rawData = await response.json();
-                loadingDiv.style.display = 'none';
-
-                if (rawData.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">Henüz raw data kaydı yok</td></tr>';
-                    return;
-                }
-
-                rawData.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50';
-                    row.innerHTML = `
-                        <td class="px-4 py-3 text-sm font-medium text-gray-900">${item.title}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">${item.description || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">${item.listName}</td>
-                        <td class="px-4 py-3 text-sm text-blue-600">
-                            ${item.shortUrl ? `<a href="${item.shortUrl}" target="_blank" class="hover:underline">Link</a>` : '-'}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-blue-600">
-                            ${item.fullUrl ? `<a href="${item.fullUrl}" target="_blank" class="hover:underline">Link</a>` : '-'}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-right">
-                            <button onclick="deleteRawData('${item.id}')" class="text-red-600 hover:text-red-800 font-medium">
-                                Sil
-                            </button>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } catch (error) {
-                loadingDiv.style.display = 'none';
-                errorDiv.style.display = 'block';
-                errorDiv.textContent = 'Raw data yüklenirken hata oluştu: ' + error.message;
+                rawDataData = await response.json();
+                displayRawData(rawDataData);
+                document.getElementById('rawdata-count').textContent = `Toplam ${rawDataData.length} kayıt`;
+            } catch (err) {
+                error.textContent = 'Raw data yüklenirken hata oluştu: ' + err.message;
+                error.style.display = 'block';
+                console.error('Error loading raw data:', err);
+            } finally {
+                loading.style.display = 'none';
             }
         }
 
-        async function deleteRawData(id) {
-            if (!confirm('Bu raw data kaydını silmek istediğinize emin misiniz?')) return;
-
-            try {
-                const response = await fetch(`${API_URL}/raw-data/${id}`, {
-                    method: 'DELETE'
-                });
-                if (!response.ok) throw new Error('Silme hatası');
-                loadRawData();
-            } catch (error) {
-                alert('Raw data silinirken hata oluştu: ' + error.message);
-            }
+        // Display raw data
+        function displayRawData(data) {
+            const tbody = document.getElementById('rawdata-tbody');
+            tbody.innerHTML = data.map(item => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm">${item.title || ''}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${(item.description || '').substring(0, 100)}${item.description && item.description.length > 100 ? '...' : ''}</td>
+                    <td class="px-4 py-3 text-sm">${item.listName || ''}</td>
+                    <td class="px-4 py-3 text-sm">${item.shortUrl || '-'}</td>
+                    <td class="px-4 py-3 text-sm">${item.fullUrl || '-'}</td>
+                </tr>
+            `).join('');
         }
 
-        document.getElementById('add-rawdata-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const successDiv = document.getElementById('rawdata-success');
-            const errorDiv = document.getElementById('rawdata-error-form');
+        // Filter raw data
+        function filterRawData() {
+            const searchText = document.getElementById('search-rawdata').value.toLowerCase();
 
-            successDiv.style.display = 'none';
-            errorDiv.style.display = 'none';
-
-            const formData = new FormData(e.target);
-            const data = {};
-            formData.forEach((value, key) => {
-                if (value) data[key] = value;
+            const filtered = rawDataData.filter(item => {
+                return (
+                    (item.title || '').toLowerCase().includes(searchText) ||
+                    (item.description || '').toLowerCase().includes(searchText) ||
+                    (item.listName || '').toLowerCase().includes(searchText)
+                );
             });
 
-            try {
-                const response = await fetch(`${API_URL}/raw-data`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+            displayRawData(filtered);
+            document.getElementById('rawdata-count').textContent = `${filtered.length} / ${rawDataData.length} kayıt gösteriliyor`;
+        }
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Ekleme hatası');
+        // Load references
+        async function loadReferences() {
+            const tbody = document.getElementById('references-tbody');
+            const statsDiv = document.getElementById('references-stats');
+
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Yükleniyor...</td></tr>';
+            statsDiv.innerHTML = '';
+
+            try {
+                // Load references data
+                const response = await fetch(`${API_URL}/hospital-references`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                referencesData = await response.json();
+
+                // Update tab count
+                document.getElementById('hospitals-count').textContent = `(${referencesData.length})`;
+
+                // Load stats
+                const statsResponse = await fetch(`${API_URL}/hospital-references/stats`);
+                if (statsResponse.ok) {
+                    const stats = await statsResponse.json();
+
+                    // Display stats
+                    statsDiv.innerHTML = `
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Toplam</div>
+                            <div class="text-2xl font-bold text-blue-600">${stats.total}</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Kamu</div>
+                            <div class="text-2xl font-bold text-green-600">${stats.byType.kamu}</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Özel</div>
+                            <div class="text-2xl font-bold text-purple-600">${stats.byType.özel}</div>
+                        </div>
+                        <div class="bg-orange-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Üniversite</div>
+                            <div class="text-2xl font-bold text-orange-600">${stats.kamuSubtypes.universite}</div>
+                        </div>
+                    `;
                 }
 
-                successDiv.textContent = '✓ Raw data başarıyla eklendi!';
-                successDiv.style.display = 'block';
-                e.target.reset();
-                loadRawData();
-
-                setTimeout(() => {
-                    successDiv.style.display = 'none';
-                }, 3000);
-            } catch (error) {
-                errorDiv.textContent = '✗ Hata: ' + error.message;
-                errorDiv.style.display = 'block';
+                displayReferences(referencesData);
+                document.getElementById('references-count').textContent = `Toplam ${referencesData.length} referans hastane`;
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Yükleme hatası: ${err.message}</td></tr>`;
+                console.error('Error loading references:', err);
             }
-        });
+        }
 
-        // Load contacts on page load
-        window.addEventListener('load', () => {
-            showTab('contacts');
-        });
+        // Display references
+        function displayReferences(data) {
+            const tbody = document.getElementById('references-tbody');
+            tbody.innerHTML = data.map(ref => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm">${ref.hastaneAdi || ''}</td>
+                    <td class="px-4 py-3 text-sm">${ref.il || ''}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 rounded text-xs font-medium ${ref.type?.name === 'kamu' ? 'bg-green-100 text-green-800' : (ref.type?.name === 'özel' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')}">
+                            ${ref.type?.displayName || '-'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            ${ref.subtype?.displayName || '-'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Filter references
+        function filterReferences() {
+            const searchText = document.getElementById('search-references').value.toLowerCase();
+
+            const filtered = referencesData.filter(ref => {
+                return (
+                    (ref.hastaneAdi || '').toLowerCase().includes(searchText) ||
+                    (ref.il || '').toLowerCase().includes(searchText) ||
+                    (ref.type?.name || '').toLowerCase().includes(searchText) ||
+                    (ref.type?.displayName || '').toLowerCase().includes(searchText) ||
+                    (ref.subtype?.name || '').toLowerCase().includes(searchText) ||
+                    (ref.subtype?.displayName || '').toLowerCase().includes(searchText)
+                );
+            });
+
+            displayReferences(filtered);
+            document.getElementById('references-count').textContent = `${filtered.length} / ${referencesData.length} referans hastane gösteriliyor`;
+        }
+
+        // Load job titles
+        async function loadJobTitles() {
+            const tbody = document.getElementById('jobtitles-tbody');
+            const statsDiv = document.getElementById('jobtitles-stats');
+
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Yükleniyor...</td></tr>';
+            statsDiv.innerHTML = '';
+
+            try {
+                // Load job titles data
+                const response = await fetch(`${API_URL}/job-titles`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                jobTitlesData = await response.json();
+
+                // Load stats
+                const statsResponse = await fetch(`${API_URL}/job-titles/stats`);
+                if (statsResponse.ok) {
+                    const stats = await statsResponse.json();
+
+                    // Display stats
+                    statsDiv.innerHTML = `
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Toplam</div>
+                            <div class="text-2xl font-bold text-blue-600">${stats.total}</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Aktif</div>
+                            <div class="text-2xl font-bold text-green-600">${stats.active}</div>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Pasif</div>
+                            <div class="text-2xl font-bold text-red-600">${stats.inactive}</div>
+                        </div>
+                    `;
+                }
+
+                displayJobTitles(jobTitlesData);
+                document.getElementById('jobtitles-count').textContent = `Toplam ${jobTitlesData.length} iş unvanı`;
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Yükleme hatası: ${err.message}</td></tr>`;
+                console.error('Error loading job titles:', err);
+            }
+        }
+
+        // Display job titles
+        function displayJobTitles(data) {
+            const tbody = document.getElementById('jobtitles-tbody');
+            tbody.innerHTML = data.map(job => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm font-medium">${job.displayName || ''}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${job.slug || ''}</td>
+                    <td class="px-4 py-3 text-sm">${job.description || '-'}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 rounded text-xs font-medium ${job.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${job.isActive ? 'Aktif' : 'Pasif'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Filter job titles
+        function filterJobTitles() {
+            const searchText = document.getElementById('search-jobtitles').value.toLowerCase();
+
+            const filtered = jobTitlesData.filter(job => {
+                return (
+                    (job.displayName || '').toLowerCase().includes(searchText) ||
+                    (job.slug || '').toLowerCase().includes(searchText) ||
+                    (job.description || '').toLowerCase().includes(searchText)
+                );
+            });
+
+            displayJobTitles(filtered);
+            document.getElementById('jobtitles-count').textContent = `${filtered.length} / ${jobTitlesData.length} iş unvanı gösteriliyor`;
+        }
+
+        // Load hospital types
+        async function loadHospitalTypes() {
+            const tbody = document.getElementById('hospitaltypes-tbody');
+            const statsDiv = document.getElementById('hospitaltypes-stats');
+
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Yükleniyor...</td></tr>';
+            statsDiv.innerHTML = '';
+
+            try {
+                // Load hospital types data
+                const response = await fetch(`${API_URL}/hospital-types`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                hospitalTypesData = await response.json();
+
+                // Load stats
+                const statsResponse = await fetch(`${API_URL}/hospital-types/stats`);
+                if (statsResponse.ok) {
+                    const stats = await statsResponse.json();
+
+                    // Display stats
+                    statsDiv.innerHTML = `
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Toplam</div>
+                            <div class="text-2xl font-bold text-blue-600">${stats.total}</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Aktif</div>
+                            <div class="text-2xl font-bold text-green-600">${stats.active}</div>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Pasif</div>
+                            <div class="text-2xl font-bold text-red-600">${stats.inactive}</div>
+                        </div>
+                    `;
+                }
+
+                displayHospitalTypes(hospitalTypesData);
+                document.getElementById('hospitaltypes-count').textContent = `Toplam ${hospitalTypesData.length} hastane türü`;
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Yükleme hatası: ${err.message}</td></tr>`;
+                console.error('Error loading hospital types:', err);
+            }
+        }
+
+        // Display hospital types
+        function displayHospitalTypes(data) {
+            const tbody = document.getElementById('hospitaltypes-tbody');
+            tbody.innerHTML = data.map(type => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm font-medium">${type.displayName || ''}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${type.slug || ''}</td>
+                    <td class="px-4 py-3 text-sm">${type.description || '-'}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 rounded text-xs font-medium ${type.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${type.isActive ? 'Aktif' : 'Pasif'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Filter hospital types
+        function filterHospitalTypes() {
+            const searchText = document.getElementById('search-hospitaltypes').value.toLowerCase();
+
+            const filtered = hospitalTypesData.filter(type => {
+                return (
+                    (type.displayName || '').toLowerCase().includes(searchText) ||
+                    (type.slug || '').toLowerCase().includes(searchText) ||
+                    (type.description || '').toLowerCase().includes(searchText)
+                );
+            });
+
+            displayHospitalTypes(filtered);
+            document.getElementById('hospitaltypes-count').textContent = `${filtered.length} / ${hospitalTypesData.length} hastane türü gösteriliyor`;
+        }
+
+        // Load hospital subtypes
+        async function loadHospitalSubtypes() {
+            const tbody = document.getElementById('hospitalsubtypes-tbody');
+            const statsDiv = document.getElementById('hospitalsubtypes-stats');
+
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">Yükleniyor...</td></tr>';
+            statsDiv.innerHTML = '';
+
+            try {
+                // Load hospital subtypes data
+                const response = await fetch(`${API_URL}/hospital-subtypes`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                hospitalSubtypesData = await response.json();
+
+                // Load stats
+                const statsResponse = await fetch(`${API_URL}/hospital-subtypes/stats`);
+                if (statsResponse.ok) {
+                    const stats = await statsResponse.json();
+
+                    // Display stats
+                    statsDiv.innerHTML = `
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Toplam</div>
+                            <div class="text-2xl font-bold text-blue-600">${stats.total}</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Aktif</div>
+                            <div class="text-2xl font-bold text-green-600">${stats.active}</div>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Pasif</div>
+                            <div class="text-2xl font-bold text-red-600">${stats.inactive}</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <div class="text-sm font-medium text-gray-600">Kamu Alt Türleri</div>
+                            <div class="text-2xl font-bold text-purple-600">${stats.byParentType.kamu || 0}</div>
+                        </div>
+                    `;
+                }
+
+                displayHospitalSubtypes(hospitalSubtypesData);
+                document.getElementById('hospitalsubtypes-count').textContent = `Toplam ${hospitalSubtypesData.length} hastane alt türü`;
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-500">Yükleme hatası: ${err.message}</td></tr>`;
+                console.error('Error loading hospital subtypes:', err);
+            }
+        }
+
+        // Display hospital subtypes
+        function displayHospitalSubtypes(data) {
+            const tbody = document.getElementById('hospitalsubtypes-tbody');
+            tbody.innerHTML = data.map(subtype => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm font-medium">${subtype.displayName || ''}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600">${subtype.slug || ''}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 rounded text-xs font-medium ${subtype.parentType?.name === 'kamu' ? 'bg-green-100 text-green-800' : (subtype.parentType?.name === 'özel' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')}">
+                            ${subtype.parentType?.displayName || '-'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">${subtype.description || '-'}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 rounded text-xs font-medium ${subtype.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${subtype.isActive ? 'Aktif' : 'Pasif'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Filter hospital subtypes
+        function filterHospitalSubtypes() {
+            const searchText = document.getElementById('search-hospitalsubtypes').value.toLowerCase();
+
+            const filtered = hospitalSubtypesData.filter(subtype => {
+                return (
+                    (subtype.displayName || '').toLowerCase().includes(searchText) ||
+                    (subtype.slug || '').toLowerCase().includes(searchText) ||
+                    (subtype.parentType?.name || '').toLowerCase().includes(searchText) ||
+                    (subtype.parentType?.displayName || '').toLowerCase().includes(searchText) ||
+                    (subtype.description || '').toLowerCase().includes(searchText)
+                );
+            });
+
+            displayHospitalSubtypes(filtered);
+            document.getElementById('hospitalsubtypes-count').textContent = `${filtered.length} / ${hospitalSubtypesData.length} hastane alt türü gösteriliyor`;
+        }
+
+        // Sort table
+        function sortTable(tableType, column) {
+            let data;
+            if (tableType === 'contacts') {
+                data = contactsData;
+            } else if (tableType === 'rawdata') {
+                data = rawDataData;
+            } else if (tableType === 'references') {
+                data = referencesData;
+            } else if (tableType === 'jobtitles') {
+                data = jobTitlesData;
+            } else if (tableType === 'hospitaltypes') {
+                data = hospitalTypesData;
+            } else if (tableType === 'hospitalsubtypes') {
+                data = hospitalSubtypesData;
+            }
+
+            const headers = document.querySelectorAll(`#${tableType}-table thead th.sortable`);
+
+            // Remove sort classes from all headers
+            headers.forEach(h => {
+                h.classList.remove('sort-asc', 'sort-desc');
+                h.classList.add('sort-icon');
+            });
+
+            // Determine sort direction
+            if (sortState.table === tableType && sortState.column === column) {
+                sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortState = { table: tableType, column, direction: 'asc' };
+            }
+
+            // Add sort class to current header
+            const currentHeader = headers[column];
+            currentHeader.classList.remove('sort-icon');
+            currentHeader.classList.add(sortState.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+
+            // Sort data - special handling for contacts with nested hospital objects
+            if (tableType === 'contacts') {
+                data.sort((a, b) => {
+                    let aVal, bVal;
+
+                    if (column === 0) aVal = a.trelloBaslik || '';
+                    else if (column === 1) aVal = a.hospital?.hastaneAdi || '';
+                    else if (column === 2) aVal = a.hospital?.il || '';
+                    else if (column === 3) aVal = a.hospital?.type?.displayName || '';
+                    else if (column === 4) aVal = a.hospital?.subtype?.displayName || '';
+
+                    if (column === 0) bVal = b.trelloBaslik || '';
+                    else if (column === 1) bVal = b.hospital?.hastaneAdi || '';
+                    else if (column === 2) bVal = b.hospital?.il || '';
+                    else if (column === 3) bVal = b.hospital?.type?.displayName || '';
+                    else if (column === 4) bVal = b.hospital?.subtype?.displayName || '';
+
+                    const comparison = aVal.localeCompare(bVal, 'tr', { sensitivity: 'base' });
+                    return sortState.direction === 'asc' ? comparison : -comparison;
+                });
+
+                displayContacts(data);
+                return;
+            }
+
+            // Sort data - special handling for references with nested objects
+            if (tableType === 'references') {
+                data.sort((a, b) => {
+                    let aVal, bVal;
+
+                    if (column === 0) aVal = a.hastaneAdi || '';
+                    else if (column === 1) aVal = a.il || '';
+                    else if (column === 2) aVal = a.type?.displayName || '';
+                    else if (column === 3) aVal = a.subtype?.displayName || '';
+
+                    if (column === 0) bVal = b.hastaneAdi || '';
+                    else if (column === 1) bVal = b.il || '';
+                    else if (column === 2) bVal = b.type?.displayName || '';
+                    else if (column === 3) bVal = b.subtype?.displayName || '';
+
+                    const comparison = aVal.localeCompare(bVal, 'tr', { sensitivity: 'base' });
+                    return sortState.direction === 'asc' ? comparison : -comparison;
+                });
+
+                displayReferences(data);
+                return;
+            }
+
+            // Standard sorting for other tables
+            let fields;
+            if (tableType === 'rawdata') {
+                fields = ['title', 'description', 'listName'];
+            } else if (tableType === 'jobtitles') {
+                fields = ['displayName', 'slug', 'description', 'isActive'];
+            } else if (tableType === 'hospitaltypes') {
+                fields = ['displayName', 'slug', 'description', 'isActive'];
+            } else if (tableType === 'hospitalsubtypes') {
+                fields = ['displayName', 'slug', 'parentType', 'description', 'isActive'];
+            }
+
+            const field = fields[column];
+
+            data.sort((a, b) => {
+                const aVal = (a[field] || '');
+                const bVal = (b[field] || '');
+
+                // Handle boolean values for isActive
+                if (field === 'isActive') {
+                    const comparison = (aVal === bVal) ? 0 : aVal ? -1 : 1;
+                    return sortState.direction === 'asc' ? comparison : -comparison;
+                }
+
+                // Use Turkish locale for proper sorting of Turkish characters (Ş, Ğ, İ, Ö, Ü, Ç)
+                const comparison = aVal.toString().localeCompare(bVal.toString(), 'tr', { sensitivity: 'base' });
+
+                if (sortState.direction === 'asc') {
+                    return comparison;
+                } else {
+                    return -comparison;
+                }
+            });
+
+            // Display sorted data
+            if (tableType === 'rawdata') {
+                displayRawData(data);
+            } else if (tableType === 'jobtitles') {
+                displayJobTitles(data);
+            } else if (tableType === 'hospitaltypes') {
+                displayHospitalTypes(data);
+            } else if (tableType === 'hospitalsubtypes') {
+                displayHospitalSubtypes(data);
+            }
+        }
+
+        // Initial load
+        window.onload = () => {
+            loadContacts();
+        };
     </script>
 </body>
 </html>

@@ -4,13 +4,21 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Get all contacts
+// Get all contacts with hospital relations
 export const getAllContacts = async (req: Request, res: Response) => {
   try {
     const contacts = await prisma.contact.findMany({
-      orderBy: {
-        hastaneAdi: 'asc',
+      include: {
+        hospital: {
+          include: {
+            type: true,
+            subtype: true,
+          },
+        },
       },
+      orderBy: [
+        { trelloBaslik: 'asc' },
+      ],
     });
     res.json(contacts);
   } catch (error) {
@@ -19,12 +27,68 @@ export const getAllContacts = async (req: Request, res: Response) => {
   }
 };
 
-// Get contact by ID
+// Get contact statistics
+export const getContactStats = async (req: Request, res: Response) => {
+  try {
+    const total = await prisma.contact.count();
+
+    // Hospital ilişkisi olan/olmayan kayıt sayısı
+    const withHospital = await prisma.contact.count({
+      where: { hospitalId: { not: null } },
+    });
+
+    const withoutHospital = total - withHospital;
+
+    // Type dağılımı (hospital ilişkisi üzerinden)
+    const kamuCount = await prisma.contact.count({
+      where: {
+        hospital: {
+          type: {
+            name: 'kamu',
+          },
+        },
+      },
+    });
+
+    const ozelCount = await prisma.contact.count({
+      where: {
+        hospital: {
+          type: {
+            name: 'özel',
+          },
+        },
+      },
+    });
+
+    res.json({
+      total,
+      withHospital,
+      withoutHospital,
+      byType: {
+        kamu: kamuCount,
+        özel: ozelCount,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching contact stats:', error);
+    res.status(500).json({ error: 'İstatistikler alınırken hata oluştu' });
+  }
+};
+
+// Get contact by ID with hospital relations
 export const getContactById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const contact = await prisma.contact.findUnique({
       where: { id },
+      include: {
+        hospital: {
+          include: {
+            type: true,
+            subtype: true,
+          },
+        },
+      },
     });
 
     if (!contact) {
@@ -48,13 +112,21 @@ export const createContact = async (req: Request, res: Response) => {
 
     const contact = await prisma.contact.create({
       data: req.body,
+      include: {
+        hospital: {
+          include: {
+            type: true,
+            subtype: true,
+          },
+        },
+      },
     });
 
     res.status(201).json(contact);
   } catch (error: any) {
     console.error('Error creating contact:', error);
     if (error.code === 'P2002') {
-      return res.status(400).json({ error: 'Bu hastane adı zaten mevcut' });
+      return res.status(400).json({ error: 'Bu trello başlık zaten mevcut' });
     }
     res.status(500).json({ error: 'Contact oluşturulurken hata oluştu' });
   }
@@ -72,6 +144,14 @@ export const updateContact = async (req: Request, res: Response) => {
     const contact = await prisma.contact.update({
       where: { id },
       data: req.body,
+      include: {
+        hospital: {
+          include: {
+            type: true,
+            subtype: true,
+          },
+        },
+      },
     });
 
     res.json(contact);
@@ -81,7 +161,7 @@ export const updateContact = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Contact bulunamadı' });
     }
     if (error.code === 'P2002') {
-      return res.status(400).json({ error: 'Bu hastane adı zaten mevcut' });
+      return res.status(400).json({ error: 'Bu trello başlık zaten mevcut' });
     }
     res.status(500).json({ error: 'Contact güncellenirken hata oluştu' });
   }

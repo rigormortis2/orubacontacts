@@ -11,38 +11,127 @@ datasource db {
 }
 
 model Contact {
-  id                String   @id @default(uuid())
-  hastaneAdi        String   @unique // Hastane adı - Primary field
-  il                String   // İl
-  hastaneTuru       String   // kamu, özel, muayenehane
-  altTur            String?  // eğitim araştırma, devlet, ilçe, üniversite (sadece kamu için)
+  id           String  @id @default(uuid())
+  trelloBaslik String  @unique @map("trello_baslik") // Original Trello card title
+  hospitalId   String? @map("hospital_id") @db.Uuid  // FK to hospitals (nullable until fuzzy matching)
 
-  // Telefon bilgileri
-  telefonDoktor     String?
-  telefonSatinalma  String?
-  telefonBiyomedikal String?
+  // Relation to hospitals reference table
+  hospital HospitalReference? @relation(fields: [hospitalId], references: [id])
 
-  // Mail bilgileri
-  mailDoktor        String?
-  mailSatinalma     String?
-  mailBiyomedikal   String?
+  // Contact information
+  telefonDoktor      String? @map("telefonDoktor")
+  telefonSatinalma   String? @map("telefonSatinalma")
+  telefonBiyomedikal String? @map("telefonBiyomedikal")
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  mailDoktor      String? @map("mailDoktor")
+  mailSatinalma   String? @map("mailSatinalma")
+  mailBiyomedikal String? @map("mailBiyomedikal")
 
-  @@map("contacts")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hospitalId])
+  @@index([trelloBaslik])
+  @@map("oruba_contacts")
 }
 
 model RawData {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
   description String?
-  listName    String   @map("list_name")
-  shortUrl    String?  @map("short_url")
-  fullUrl     String?  @map("full_url")
+  listName    String  @map("list_name")
+  shortUrl    String? @map("short_url")
+  fullUrl     String? @map("full_url")
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("raw_datas")
+  @@map("trello_raw_datas")
+}
+
+// Referans tablosu - Wikipedia'dan çekilen resmi hastane listesi
+model HospitalReference {
+  id         String @id @default(uuid())
+  hastaneAdi String // Hastane adı
+  il         String // İl
+  typeId     String @map("type_id") // Foreign key to hospital_types
+  subtypeId  String @map("subtype_id") // Foreign key to hospital_subtypes
+  kaynak     String @default("Wikipedia") // Veri kaynağı
+
+  // İlişkiler
+  type    HospitalType    @relation(fields: [typeId], references: [id])
+  subtype HospitalSubtype @relation(fields: [subtypeId], references: [id])
+
+  // Reverse relation to contacts (NEW)
+  contacts Contact[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([hastaneAdi, il]) // Composite unique constraint
+  @@index([il])
+  @@index([typeId])
+  @@index([subtypeId])
+  @@map("hospitals")
+}
+
+// Job titles referans tablosu
+model JobTitle {
+  id          String  @id @default(uuid())
+  title       String  @unique // Job title name (unique identifier)
+  slug        String  @unique // URL-friendly version (doktor, satinalma, biyomedikal, other)
+  displayName String  @map("display_name") // Turkish display name (Doktor, Satınalma, Biyomedikal, Diğer)
+  description String? // Optional job description
+  isActive    Boolean @default(true) @map("is_active") // Active status flag
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("job_titles")
+}
+
+// Hospital types referans tablosu
+model HospitalType {
+  id          String  @id @default(uuid())
+  name        String  @unique // Internal name (kamu, özel, muayenehane, other)
+  slug        String  @unique // URL-friendly version
+  displayName String  @map("display_name") // Display name (Kamu, Özel, Muayenehane, Diğer)
+  description String? // Optional description
+  isActive    Boolean @default(true) @map("is_active") // Active status flag
+
+  // İlişki: Bir hospital type'ın birden fazla subtype'ı olabilir
+  subtypes  HospitalSubtype[]   @relation("HospitalTypeToSubtype")
+  hospitals HospitalReference[] // Relation to hospitals
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("hospital_types")
+}
+
+// Hospital subtypes referans tablosu
+model HospitalSubtype {
+  id           String  @id @default(uuid())
+  name         String  @unique // Subtype name (unique identifier)
+  slug         String  @unique // URL-friendly version (devlet, egitim-arastirma, ilce, universite, sehir, diger-kamu, diger-ozel, diger-muayenehane, diger)
+  displayName  String  @map("display_name") // Turkish display name (Devlet, Eğitim Araştırma, İlçe, Üniversite, Şehir, Diğer)
+  description  String? // Optional subtype description
+  parentTypeId String? @map("parent_type_id") // Foreign key to hospital_types.id
+  isActive     Boolean @default(true) @map("is_active") // Active status flag
+
+  // İlişki: Her subtype bir hospital type'a ait olabilir
+  parentType HospitalType?       @relation("HospitalTypeToSubtype", fields: [parentTypeId], references: [id])
+  hospitals  HospitalReference[] // Relation to hospitals
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([parentTypeId])
+  @@map("hospital_subtypes")
 }
