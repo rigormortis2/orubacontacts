@@ -16,6 +16,7 @@ router.get('/', contactController.getAllContacts);
 router.get('/:id', contactController.getContactById);
 router.post('/', contactValidation, contactController.createContact);
 router.put('/:id', contactValidation, contactController.updateContact);
+router.patch('/:id/hospital', contactController.updateContactHospital); // Manual hospital matching
 router.delete('/:id', contactController.deleteContact);
 
 export default router;

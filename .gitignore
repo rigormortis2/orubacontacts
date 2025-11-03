@@ -70,3 +70,43 @@ uploads/
 backend/imports/*.xlsx
 backend/imports/*.xls
 !backend/imports/.gitkeep
+
+# Backups
+backend/backups/
+*.backup
+*_backup.*
+
+# Data files
+*.csv
+*.xlsx
+*.xls
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!backend/prisma/migrations/**/*.json
+!backend/src/**/*.json
+
+# SQL files (temporary scripts and matching data)
+backend/*.sql
+backend/**/*.sql
+!backend/prisma/migrations/**/*.sql
+
+# Python/JavaScript scripts (temporary matching scripts)
+backend/*.py
+backend/*.js
+!backend/src/**/*.js
+!backend/prisma/**/*.js
+
+# HTML scraping files
+backend/*.html
+
+# Reports and temporary docs
+backend/*REPORT*.md
+backend/*SUMMARY*.md
+backend/*_REPORT.md
+backend/*_SUMMARY.txt
+backend/GROUP_*.md
+backend/AGENT*.md
+backend/MATCHING_*.md
+backend/README_*.md

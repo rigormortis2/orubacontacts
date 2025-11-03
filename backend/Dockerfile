@@ -55,8 +55,9 @@ ENV NODE_ENV=production
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install only production dependencies
+# Install production dependencies AND prisma (needed for Prisma Studio)
 RUN npm ci --only=production && \
+    npm install prisma@^5.7.0 && \
     npm cache clean --force
 
 # Generate Prisma Client for production
@@ -72,10 +73,11 @@ RUN mkdir -p /app/imports && \
 # Use non-root user
 USER node
 
-# Expose application port
+# Expose application port and Prisma Studio port
 EXPOSE 3000
+EXPOSE 5555
 
-# Create entrypoint script for database migration
+# Create entrypoint script for database migration and dual service startup
 COPY --chown=node:node <<EOF /app/entrypoint.sh
 #!/bin/sh
 set -e
@@ -90,8 +92,20 @@ echo "Database is ready!"
 echo "Running database migrations..."
 npx prisma migrate deploy
 
-echo "Starting application..."
-exec node dist/index.js
+echo "Starting Prisma Studio on port 5555..."
+npx prisma studio --port 5555 --browser none &
+PRISMA_STUDIO_PID=\$!
+
+echo "Starting application on port 3000..."
+node dist/index.js &
+APP_PID=\$!
+
+echo "Services started:"
+echo "  - API: http://localhost:3000 (PID: \$APP_PID)"
+echo "  - Prisma Studio: http://localhost:5555 (PID: \$PRISMA_STUDIO_PID)"
+
+# Wait for both processes
+wait \$APP_PID \$PRISMA_STUDIO_PID
 EOF
 
 RUN chmod +x /app/entrypoint.sh

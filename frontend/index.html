@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .tab-active {
-            border-b-2px solid #2563eb;
+            border-bottom: 2px solid #2563eb;
             color: #2563eb;
         }
         .table-container {
@@ -33,6 +33,123 @@
             content: ' ↓';
             opacity: 1;
         }
+        .unmatched-hospital {
+            cursor: pointer;
+            color: #ef4444;
+            font-style: italic;
+            transition: all 0.2s;
+        }
+        .unmatched-hospital:hover {
+            color: #dc2626;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 50;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            animation: fadeIn 0.2s;
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow: hidden;
+            animation: slideIn 0.3s;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .hospital-item {
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .hospital-item:hover {
+            background-color: #eff6ff;
+            transform: translateX(4px);
+        }
+        .hospital-item.selected {
+            background-color: #dbeafe;
+            border-left: 4px solid #3b82f6;
+        }
+        .filter-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            background-color: #dbeafe;
+            color: #1e40af;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .action-button {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.375rem;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .action-button-edit {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .action-button-edit:hover {
+            background-color: #2563eb;
+        }
+        .action-button-delete {
+            background-color: #ef4444;
+            color: white;
+        }
+        .action-button-delete:hover {
+            background-color: #dc2626;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .form-input:focus {
+            outline: none;
+            ring: 2px;
+            ring-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        .form-error {
+            color: #ef4444;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -46,14 +163,17 @@
         <!-- Tabs -->
         <div class="bg-white rounded-lg shadow-lg mb-6">
             <div class="flex border-b">
-                <button onclick="showTab('contacts')" id="tab-contacts" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600 tab-active">
-                    Oruba Contacts
+                <button onclick="showTab('trelloMatches')" id="tab-trelloMatches" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600 tab-active">
+                    Trello Matches
                 </button>
                 <button onclick="showTab('references')" id="tab-references" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600">
                     Hospitals <span id="hospitals-count">(664)</span>
                 </button>
                 <button onclick="showTab('rawdata')" id="tab-rawdata" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600">
                     Trello Raw Data
+                </button>
+                <button onclick="showTab('contactPersons')" id="tab-contactPersons" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600">
+                    Contacts <span id="contacts-count">(0)</span>
                 </button>
                 <button onclick="showTab('jobtitles')" id="tab-jobtitles" class="px-6 py-3 font-medium text-gray-700 hover:text-blue-600">
                     Job Titles (4)
@@ -67,95 +187,110 @@
             </div>
         </div>
 
-        <!-- Contacts Tab -->
-        <div id="content-contacts" class="space-y-6">
+        <!-- Trello Matches Tab -->
+        <div id="content-trelloMatches" class="space-y-6">
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-900">Hastane Listesi</h2>
-                    <button onclick="loadContacts()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        🔄 Yenile
-                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="openAddHospitalModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                            + Yeni Hastane Ekle
+                        </button>
+                        <button onclick="openBulkMatchingModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                            🏥 Hastane Eşleştir
+                        </button>
+                        <button onclick="loadTrelloMatches()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            Yenile
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Search Box -->
-                <div class="mb-4">
+                <!-- Search Box and Unmatched Filter -->
+                <div class="mb-4 flex items-center gap-4">
                     <input
                         type="text"
-                        id="search-contacts"
-                        placeholder="🔍 Ara... (trello başlık, hastane adı, il, telefon, mail)"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        onkeyup="filterContacts()"
+                        id="search-trelloMatches"
+                        placeholder="Ara... (trello baslik, hastane adi, il, telefon, mail)"
+                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onkeyup="filterTrelloMatches()"
                     >
+                    <div class="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 bg-white">
+                        <input type="checkbox" id="filter-unmatched-trelloMatches" onchange="toggleUnmatchedTrelloMatchesFilter()" class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                        <label for="filter-unmatched-trelloMatches" class="text-sm text-gray-700 whitespace-nowrap cursor-pointer select-none">
+                            Sadece Eşleştirilemedi olanları göster
+                        </label>
+                    </div>
                 </div>
 
-                <div id="contacts-loading" class="text-center py-8" style="display:none;">
+                <div id="trelloMatches-loading" class="text-center py-8" style="display:none;">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                    <p class="mt-4 text-gray-500">Yukleniyor...</p>
                 </div>
-                <div id="contacts-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
+                <div id="trelloMatches-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
 
                 <div class="table-container">
-                    <table id="contacts-table" class="min-w-full divide-y divide-gray-200">
+                    <table id="trelloMatches-table" class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
-                                <th onclick="sortTable('contacts', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trello Başlık</th>
-                                <th onclick="sortTable('contacts', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hastane Adı</th>
-                                <th onclick="sortTable('contacts', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İl</th>
-                                <th onclick="sortTable('contacts', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tür</th>
-                                <th onclick="sortTable('contacts', 4)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alt Tür</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İletişim Bilgileri</th>
+                                <th onclick="sortTable('trelloMatches', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trello Baslik</th>
+                                <th onclick="sortTable('trelloMatches', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hastane Adi</th>
+                                <th onclick="sortTable('trelloMatches', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Il</th>
+                                <th onclick="sortTable('trelloMatches', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tur</th>
+                                <th onclick="sortTable('trelloMatches', 4)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alt Tur</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Iletisim Bilgileri</th>
                             </tr>
                         </thead>
-                        <tbody id="contacts-tbody" class="bg-white divide-y divide-gray-200">
+                        <tbody id="trelloMatches-tbody" class="bg-white divide-y divide-gray-200">
                         </tbody>
                     </table>
                 </div>
-                <div id="contacts-count" class="mt-4 text-sm text-gray-600"></div>
+                <div id="trelloMatches-count" class="mt-4 text-sm text-gray-600"></div>
             </div>
         </div>
 
-        <!-- Wikipedia References Tab -->
+        <!-- References Tab -->
         <div id="content-references" class="space-y-6" style="display:none;">
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold text-gray-900">Wikipedia Referans Hastaneler</h2>
-                    <button onclick="loadReferences()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        🔄 Yenile
-                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="openAddHospitalModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                            + Yeni Hastane Ekle
+                        </button>
+                        <button onclick="loadReferences()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            Yenile
+                        </button>
+                    </div>
                 </div>
-
-                <!-- Stats -->
                 <div id="references-stats" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"></div>
 
-                <!-- Search Box -->
-                <div class="mb-4">
-                    <input
-                        type="text"
-                        id="search-references"
-                        placeholder="🔍 Ara... (hastane adı, il)"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        onkeyup="filterReferences()"
-                    >
+                <!-- FEATURE 1: Add Unmatched Only Filter -->
+                <div class="mb-4 flex items-center gap-4">
+                    <input type="text" id="search-references" placeholder="Ara... (hastane adi, il)" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" onkeyup="filterReferences()">
+                    <div class="flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 bg-white">
+                        <input type="checkbox" id="filter-unmatched-hospitals" onchange="toggleUnmatchedHospitalsFilter()" class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                        <label for="filter-unmatched-hospitals" class="text-sm text-gray-700 whitespace-nowrap cursor-pointer select-none">
+                            Sadece Eşleştirilemedi olanları göster
+                        </label>
+                    </div>
                 </div>
 
                 <div id="references-loading" class="text-center py-8" style="display:none;">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                    <p class="mt-4 text-gray-500">Yukleniyor...</p>
                 </div>
                 <div id="references-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
-
                 <div class="table-container">
                     <table id="references-table" class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
-                                <th onclick="sortTable('references', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hastane Adı</th>
-                                <th onclick="sortTable('references', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İl</th>
-                                <th onclick="sortTable('references', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tür</th>
-                                <th onclick="sortTable('references', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alt Tür</th>
+                                <th onclick="sortTable('references', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hastane Adi</th>
+                                <th onclick="sortTable('references', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Il</th>
+                                <th onclick="sortTable('references', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tur</th>
+                                <th onclick="sortTable('references', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alt Tur</th>
                             </tr>
                         </thead>
-                        <tbody id="references-tbody" class="bg-white divide-y divide-gray-200">
-                        </tbody>
+                        <tbody id="references-tbody" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
                 <div id="references-count" class="mt-4 text-sm text-gray-600"></div>
@@ -166,9 +301,9 @@
         <div id="content-rawdata" class="space-y-6" style="display:none;">
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-900">Raw Data Listesi</h2>
+                    <h2 class="text-2xl font-bold text-gray-900">Trello Raw Data</h2>
                     <button onclick="loadRawData()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        🔄 Yenile
+                        Yenile
                     </button>
                 </div>
 
@@ -177,7 +312,7 @@
                     <input
                         type="text"
                         id="search-rawdata"
-                        placeholder="🔍 Ara... (title, description, list_name)"
+                        placeholder="Ara... (title, description)"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         onkeyup="filterRawData()"
                     >
@@ -185,7 +320,7 @@
 
                 <div id="rawdata-loading" class="text-center py-8" style="display:none;">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                    <p class="mt-4 text-gray-500">Yukleniyor...</p>
                 </div>
                 <div id="rawdata-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
 
@@ -195,9 +330,8 @@
                             <tr>
                                 <th onclick="sortTable('rawdata', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
                                 <th onclick="sortTable('rawdata', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                                <th onclick="sortTable('rawdata', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">List Name</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Short URL</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Full URL</th>
+                                <th onclick="sortTable('rawdata', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created At</th>
+                                <th onclick="sortTable('rawdata', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Updated At</th>
                             </tr>
                         </thead>
                         <tbody id="rawdata-tbody" class="bg-white divide-y divide-gray-200">
@@ -208,25 +342,75 @@
             </div>
         </div>
 
+        <!-- Contact Persons Tab (NEW) -->
+        <div id="content-contactPersons" class="space-y-6" style="display:none;">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900">Kişi İletişim Bilgileri</h2>
+                    <div class="flex gap-2">
+                        <button onclick="openAddContactPersonModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                            + Yeni Kişi Ekle
+                        </button>
+                        <button onclick="loadContactPersons()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            Yenile
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search Box -->
+                <div class="mb-4">
+                    <input
+                        type="text"
+                        id="search-contactPersons"
+                        placeholder="Ara... (ad, soyad, telefon, email, hastane)"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onkeyup="filterContactPersons()"
+                    >
+                </div>
+
+                <div id="contactPersons-loading" class="text-center py-8" style="display:none;">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p class="mt-4 text-gray-500">Yukleniyor...</p>
+                </div>
+                <div id="contactPersons-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
+
+                <div class="table-container">
+                    <table id="contactPersons-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th onclick="sortTable('contactPersons', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ad</th>
+                                <th onclick="sortTable('contactPersons', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Soyad</th>
+                                <th onclick="sortTable('contactPersons', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefon</th>
+                                <th onclick="sortTable('contactPersons', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                <th onclick="sortTable('contactPersons', 4)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hastane</th>
+                                <th onclick="sortTable('contactPersons', 5)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unvan</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contactPersons-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="contactPersons-count" class="mt-4 text-sm text-gray-600"></div>
+            </div>
+        </div>
+
         <!-- Job Titles Tab -->
         <div id="content-jobtitles" class="space-y-6" style="display:none;">
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-900">İş Unvanları</h2>
+                    <h2 class="text-2xl font-bold text-gray-900">Unvan Listesi</h2>
                     <button onclick="loadJobTitles()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        🔄 Yenile
+                        Yenile
                     </button>
                 </div>
-
-                <!-- Stats -->
-                <div id="jobtitles-stats" class="grid grid-cols-3 gap-4 mb-4"></div>
 
                 <!-- Search Box -->
                 <div class="mb-4">
                     <input
                         type="text"
                         id="search-jobtitles"
-                        placeholder="🔍 Ara... (unvan, slug, açıklama)"
+                        placeholder="Ara... (name, display name)"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         onkeyup="filterJobTitles()"
                     >
@@ -234,7 +418,7 @@
 
                 <div id="jobtitles-loading" class="text-center py-8" style="display:none;">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                    <p class="mt-4 text-gray-500">Yukleniyor...</p>
                 </div>
                 <div id="jobtitles-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
 
@@ -242,10 +426,10 @@
                     <table id="jobtitles-table" class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
-                                <th onclick="sortTable('jobtitles', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unvan</th>
-                                <th onclick="sortTable('jobtitles', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
-                                <th onclick="sortTable('jobtitles', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Açıklama</th>
-                                <th onclick="sortTable('jobtitles', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durum</th>
+                                <th onclick="sortTable('jobtitles', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                <th onclick="sortTable('jobtitles', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                <th onclick="sortTable('jobtitles', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Display Name</th>
+                                <th onclick="sortTable('jobtitles', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created At</th>
                             </tr>
                         </thead>
                         <tbody id="jobtitles-tbody" class="bg-white divide-y divide-gray-200">
@@ -260,21 +444,18 @@
         <div id="content-hospitaltypes" class="space-y-6" style="display:none;">
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-900">Hastane Türleri</h2>
+                    <h2 class="text-2xl font-bold text-gray-900">Hastane Tipleri</h2>
                     <button onclick="loadHospitalTypes()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        🔄 Yenile
+                        Yenile
                     </button>
                 </div>
-
-                <!-- Stats -->
-                <div id="hospitaltypes-stats" class="grid grid-cols-3 gap-4 mb-4"></div>
 
                 <!-- Search Box -->
                 <div class="mb-4">
                     <input
                         type="text"
                         id="search-hospitaltypes"
-                        placeholder="🔍 Ara... (tür adı, slug, açıklama)"
+                        placeholder="Ara... (name, display name)"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         onkeyup="filterHospitalTypes()"
                     >
@@ -282,7 +463,7 @@
 
                 <div id="hospitaltypes-loading" class="text-center py-8" style="display:none;">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                    <p class="mt-4 text-gray-500">Yukleniyor...</p>
                 </div>
                 <div id="hospitaltypes-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
 
@@ -290,10 +471,10 @@
                     <table id="hospitaltypes-table" class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
-                                <th onclick="sortTable('hospitaltypes', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tür Adı</th>
-                                <th onclick="sortTable('hospitaltypes', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
-                                <th onclick="sortTable('hospitaltypes', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Açıklama</th>
-                                <th onclick="sortTable('hospitaltypes', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durum</th>
+                                <th onclick="sortTable('hospitaltypes', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                <th onclick="sortTable('hospitaltypes', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                <th onclick="sortTable('hospitaltypes', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Display Name</th>
+                                <th onclick="sortTable('hospitaltypes', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created At</th>
                             </tr>
                         </thead>
                         <tbody id="hospitaltypes-tbody" class="bg-white divide-y divide-gray-200">
@@ -308,21 +489,18 @@
         <div id="content-hospitalsubtypes" class="space-y-6" style="display:none;">
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-900">Hastane Alt Türleri</h2>
+                    <h2 class="text-2xl font-bold text-gray-900">Hastane Alt Tipleri</h2>
                     <button onclick="loadHospitalSubtypes()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        🔄 Yenile
+                        Yenile
                     </button>
                 </div>
-
-                <!-- Stats -->
-                <div id="hospitalsubtypes-stats" class="grid grid-cols-4 gap-4 mb-4"></div>
 
                 <!-- Search Box -->
                 <div class="mb-4">
                     <input
                         type="text"
                         id="search-hospitalsubtypes"
-                        placeholder="🔍 Ara... (alt tür adı, slug, ana tür, açıklama)"
+                        placeholder="Ara... (name, display name)"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         onkeyup="filterHospitalSubtypes()"
                     >
@@ -330,7 +508,7 @@
 
                 <div id="hospitalsubtypes-loading" class="text-center py-8" style="display:none;">
                     <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                    <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                    <p class="mt-4 text-gray-500">Yukleniyor...</p>
                 </div>
                 <div id="hospitalsubtypes-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
 
@@ -338,11 +516,11 @@
                     <table id="hospitalsubtypes-table" class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50 sticky top-0">
                             <tr>
-                                <th onclick="sortTable('hospitalsubtypes', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alt Tür Adı</th>
-                                <th onclick="sortTable('hospitalsubtypes', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
-                                <th onclick="sortTable('hospitalsubtypes', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ana Tür</th>
-                                <th onclick="sortTable('hospitalsubtypes', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Açıklama</th>
-                                <th onclick="sortTable('hospitalsubtypes', 4)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durum</th>
+                                <th onclick="sortTable('hospitalsubtypes', 0)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                <th onclick="sortTable('hospitalsubtypes', 1)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                <th onclick="sortTable('hospitalsubtypes', 2)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Display Name</th>
+                                <th onclick="sortTable('hospitalsubtypes', 3)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                                <th onclick="sortTable('hospitalsubtypes', 4)" class="sortable sort-icon px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created At</th>
                             </tr>
                         </thead>
                         <tbody id="hospitalsubtypes-tbody" class="bg-white divide-y divide-gray-200">
@@ -354,56 +532,463 @@
         </div>
     </div>
 
+    <!-- Hospital Matching Modal -->
+    <div id="hospital-matching-modal" class="modal">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Hastane Eşleştir</h3>
+                            <p class="text-blue-100 text-sm mt-1" id="modal-trelloMatch-title"></p>
+                        </div>
+                        <button onclick="openAddHospitalModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium transition">
+                            + Yeni Hastane Ekle
+                        </button>
+                    </div>
+                    <button onclick="closeMatchingModal()" class="text-white hover:text-gray-200 text-2xl leading-none">
+                        &times;
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 180px);">
+                <!-- Search Box -->
+                <div class="mb-4">
+                    <input
+                        type="text"
+                        id="modal-search"
+                        placeholder="Hastane adi veya il ile ara..."
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onkeyup="searchHospitalsInModal()"
+                    >
+                </div>
+
+                <!-- Filter Info -->
+                <div class="mb-4 flex items-center gap-2">
+                    <input type="checkbox" id="unused-only" checked onchange="searchHospitalsInModal()" class="w-4 h-4 text-blue-600 rounded">
+                    <label for="unused-only" class="text-sm text-gray-700">Sadece daha once eslestirilmemis hastaneleri goster</label>
+                </div>
+
+                <!-- Loading State -->
+                <div id="modal-loading" class="text-center py-12" style="display:none;">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <p class="mt-4 text-gray-500">Hastaneler yukleniyor...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="modal-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
+
+                <!-- Hospitals List -->
+                <div id="modal-hospitals-list" class="space-y-2">
+                    <!-- Hospital items will be inserted here -->
+                </div>
+
+                <!-- No Results -->
+                <div id="modal-no-results" class="text-center py-12 text-gray-500" style="display:none;">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="mt-4">Hic sonuc bulunamadi</p>
+                    <p class="text-sm text-gray-400 mt-2">Arama kriterlerinizi degistirmeyi deneyin</p>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t">
+                <div class="text-sm text-gray-600">
+                    <span id="selected-hospital-name">Bir hastane secin</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="closeMatchingModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">
+                        Iptal
+                    </button>
+                    <button id="confirm-matching-btn" onclick="confirmMatching()" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Onayla ve Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Matching Modal (Hastane Eşleştir) -->
+    <div id="bulkMatchingModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="bg-white">
+                <div class="flex justify-between items-center p-6 border-b">
+                    <div class="flex items-center gap-4">
+                        <h2 class="text-2xl font-bold text-gray-900">🏥 Eşleştirilememiş Hastaneler</h2>
+                        <button onclick="openAddHospitalModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm">
+                            ➕ Yeni Hastane Ekle
+                        </button>
+                    </div>
+                    <button onclick="closeBulkMatchingModal()" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+                </div>
+
+                <div class="p-6">
+
+                    <div id="bulkMatching-loading" class="text-center py-8" style="display:none;">
+                        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <p class="mt-4 text-gray-500">Yükleniyor...</p>
+                    </div>
+
+                    <div id="bulkMatching-error" class="text-red-600 p-4 bg-red-50 rounded mb-4" style="display:none;"></div>
+
+                    <div id="bulkMatching-empty" class="text-center py-8 text-gray-500" style="display:none;">
+                        <p class="text-lg">✓ Tüm hastaneler zaten eşleştirilmiş!</p>
+                    </div>
+
+                    <div id="bulkMatching-content" style="display:none;">
+                        <p class="text-sm text-gray-600 mb-4">
+                            Aşağıdaki hastaneler hiçbir Trello kaydı ile eşleştirilmemiş. İsterseniz yeni hastane ekleyebilirsiniz.
+                        </p>
+
+                        <!-- Search Box -->
+                        <div class="mb-4">
+                            <input
+                                type="text"
+                                id="search-bulkmatching"
+                                placeholder="🔍 Ara... (hastane adı, il)"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                onkeyup="filterBulkMatching()"
+                            >
+                        </div>
+
+                        <div class="table-container" style="max-height: 400px;">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hastane Adı</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">İl</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tür</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alt Tür</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bulkMatching-tbody" class="bg-white divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                        <div id="bulkMatching-count" class="mt-4 text-sm text-gray-600"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Hospital Modal -->
+    <div id="addHospitalModal" class="modal">
+        <div class="modal-content">
+            <div class="bg-white">
+                <div class="flex justify-between items-center p-6 border-b">
+                    <h2 class="text-2xl font-bold text-gray-900">+ Yeni Hastane Ekle</h2>
+                    <button onclick="closeAddHospitalModal()" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+                </div>
+
+                <div class="p-6">
+                    <form id="addHospitalForm" onsubmit="submitNewHospital(event)">
+                        <!-- Hastane Adi -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Hastane Adi <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="newHospitalName"
+                                required
+                                placeholder="Orn: Ankara Sehir Hastanesi"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            >
+                        </div>
+
+                        <!-- Il (City Dropdown) -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                İl <span class="text-red-500">*</span>
+                            </label>
+                            <select
+                                id="newHospitalCity"
+                                required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">İl seçin...</option>
+                                <!-- Cities will be populated dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- Hastane Turu -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Hastane Turu <span class="text-red-500">*</span>
+                            </label>
+                            <select
+                                id="newHospitalType"
+                                required
+                                onchange="loadSubtypesForNewHospital()"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Tur secin...</option>
+                            </select>
+                        </div>
+
+                        <!-- Alt Tur -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Alt Tur <span class="text-red-500">*</span>
+                            </label>
+                            <select
+                                id="newHospitalSubtype"
+                                required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Once tur secin...</option>
+                            </select>
+                        </div>
+
+                        <div id="addHospitalError" class="mb-4 p-3 bg-red-50 text-red-600 rounded-lg" style="display:none;"></div>
+
+                        <div class="flex gap-3 justify-end">
+                            <button
+                                type="button"
+                                onclick="closeAddHospitalModal()"
+                                class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                            >
+                                Iptal
+                            </button>
+                            <button
+                                type="submit"
+                                class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                            >
+                                Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Contact Person Modal (NEW) -->
+    <div id="contactPersonModal" class="modal">
+        <div class="modal-content">
+            <div class="bg-white">
+                <div class="flex justify-between items-center p-6 border-b">
+                    <h2 class="text-2xl font-bold text-gray-900" id="contactPersonModalTitle">+ Yeni Kişi Ekle</h2>
+                    <button onclick="closeContactPersonModal()" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+                </div>
+
+                <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 180px);">
+                    <form id="contactPersonForm" onsubmit="saveContactPerson(event)">
+                        <input type="hidden" id="contactPersonId" value="">
+
+                        <!-- First Name -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                Ad <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="contactPersonFirstName"
+                                class="form-input"
+                                required
+                                placeholder="Örn: Ahmet"
+                            >
+                            <div id="error-firstName" class="form-error" style="display:none;"></div>
+                        </div>
+
+                        <!-- Last Name -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                Soyad <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="contactPersonLastName"
+                                class="form-input"
+                                required
+                                placeholder="Örn: Yılmaz"
+                            >
+                            <div id="error-lastName" class="form-error" style="display:none;"></div>
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                Telefon
+                            </label>
+                            <input
+                                type="tel"
+                                id="contactPersonPhone"
+                                class="form-input"
+                                placeholder="Örn: +90 555 123 45 67"
+                            >
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                id="contactPersonEmail"
+                                class="form-input"
+                                placeholder="Örn: ahmet@example.com"
+                            >
+                            <div id="error-email" class="form-error" style="display:none;"></div>
+                        </div>
+
+                        <!-- Hospital -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                Hastane
+                            </label>
+                            <select
+                                id="contactPersonHospital"
+                                class="form-input"
+                            >
+                                <option value="">Hastane seçin...</option>
+                                <!-- Hospitals will be populated dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- Job Title -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                Ünvan
+                            </label>
+                            <select
+                                id="contactPersonJobTitle"
+                                class="form-input"
+                            >
+                                <option value="">Ünvan seçin...</option>
+                                <!-- Job titles will be populated dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                Notlar
+                            </label>
+                            <textarea
+                                id="contactPersonNotes"
+                                class="form-input"
+                                rows="4"
+                                placeholder="Ek notlar..."
+                            ></textarea>
+                        </div>
+
+                        <div id="contactPersonError" class="mb-4 p-3 bg-red-50 text-red-600 rounded-lg" style="display:none;"></div>
+
+                        <div class="flex gap-3 justify-end">
+                            <button
+                                type="button"
+                                onclick="closeContactPersonModal()"
+                                class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                            >
+                                İptal
+                            </button>
+                            <button
+                                type="submit"
+                                id="contactPersonSubmitBtn"
+                                class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                            >
+                                Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // API Base URL - Use relative path for nginx proxy
         const API_URL = '/api';
 
-        let contactsData = [];
+        let trelloMatchesData = [];
         let rawDataData = [];
         let referencesData = [];
         let jobTitlesData = [];
         let hospitalTypesData = [];
         let hospitalSubtypesData = [];
-        let currentTab = 'contacts';
-        let sortState = { table: null, column: null, direction: 'asc' };
+        let contactPersonsData = [];
+        let currentTab = 'trelloMatches';
+
+        // FEATURE 1: State for unmatched hospitals filter
+        let showUnmatchedHospitals = false;
+
+        // NEW: State for unmatched trello matches filter
+        let showUnmatchedTrelloMatchesOnly = false;
+
+        // Sort state tracking for each table
+        let sortState = {
+            trelloMatches: { column: null, direction: 'asc' },
+            references: { column: null, direction: 'asc' },
+            rawdata: { column: null, direction: 'asc' },
+            jobtitles: { column: null, direction: 'asc' },
+            hospitaltypes: { column: null, direction: 'asc' },
+            hospitalsubtypes: { column: null, direction: 'asc' },
+            contactPersons: { column: null, direction: 'asc' }
+        };
+
+        // Modal state
+        let modalHospitals = [];
+        let selectedHospital = null;
+        let currentTrelloMatch = null;
+
+        // Add New Hospital Modal state
+        let hospitalTypesForModal = [];
+        let hospitalSubtypesForModal = [];
+        let citiesData = [];
+
+        // Contact Person Modal state
+        let hospitalsForContactModal = [];
+        let jobTitlesForContactModal = [];
+        let currentEditingContact = null;
 
         // Show tab
         function showTab(tab) {
             currentTab = tab;
-            document.getElementById('content-contacts').style.display = tab === 'contacts' ? 'block' : 'none';
+            document.getElementById('content-trelloMatches').style.display = tab === 'trelloMatches' ? 'block' : 'none';
             document.getElementById('content-rawdata').style.display = tab === 'rawdata' ? 'block' : 'none';
             document.getElementById('content-references').style.display = tab === 'references' ? 'block' : 'none';
             document.getElementById('content-jobtitles').style.display = tab === 'jobtitles' ? 'block' : 'none';
             document.getElementById('content-hospitaltypes').style.display = tab === 'hospitaltypes' ? 'block' : 'none';
             document.getElementById('content-hospitalsubtypes').style.display = tab === 'hospitalsubtypes' ? 'block' : 'none';
+            document.getElementById('content-contactPersons').style.display = tab === 'contactPersons' ? 'block' : 'none';
 
-            document.getElementById('tab-contacts').classList.toggle('tab-active', tab === 'contacts');
+            document.getElementById('tab-trelloMatches').classList.toggle('tab-active', tab === 'trelloMatches');
             document.getElementById('tab-rawdata').classList.toggle('tab-active', tab === 'rawdata');
             document.getElementById('tab-references').classList.toggle('tab-active', tab === 'references');
             document.getElementById('tab-jobtitles').classList.toggle('tab-active', tab === 'jobtitles');
             document.getElementById('tab-hospitaltypes').classList.toggle('tab-active', tab === 'hospitaltypes');
             document.getElementById('tab-hospitalsubtypes').classList.toggle('tab-active', tab === 'hospitalsubtypes');
+            document.getElementById('tab-contactPersons').classList.toggle('tab-active', tab === 'contactPersons');
 
-            if (tab === 'contacts' && contactsData.length === 0) {
-                loadContacts();
-            } else if (tab === 'rawdata' && rawDataData.length === 0) {
-                loadRawData();
+            if (tab === 'trelloMatches' && trelloMatchesData.length === 0) {
+                loadTrelloMatches();
             } else if (tab === 'references' && referencesData.length === 0) {
                 loadReferences();
+            } else if (tab === 'rawdata' && rawDataData.length === 0) {
+                loadRawData();
             } else if (tab === 'jobtitles' && jobTitlesData.length === 0) {
                 loadJobTitles();
             } else if (tab === 'hospitaltypes' && hospitalTypesData.length === 0) {
                 loadHospitalTypes();
             } else if (tab === 'hospitalsubtypes' && hospitalSubtypesData.length === 0) {
                 loadHospitalSubtypes();
+            } else if (tab === 'contactPersons' && contactPersonsData.length === 0) {
+                loadContactPersons();
             }
         }
 
-        // Load contacts
-        async function loadContacts() {
-            const loading = document.getElementById('contacts-loading');
-            const error = document.getElementById('contacts-error');
-            const tbody = document.getElementById('contacts-tbody');
+        // Load trello matches (formerly contacts)
+        async function loadTrelloMatches() {
+            const loading = document.getElementById('trelloMatches-loading');
+            const error = document.getElementById('trelloMatches-error');
+            const tbody = document.getElementById('trelloMatches-tbody');
 
             loading.style.display = 'block';
             error.style.display = 'none';
@@ -413,62 +998,77 @@
                 const response = await fetch(`${API_URL}/contacts`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-                contactsData = await response.json();
-                displayContacts(contactsData);
-                document.getElementById('contacts-count').textContent = `Toplam ${contactsData.length} hastane`;
+                const result = await response.json();
+                trelloMatchesData = Array.isArray(result) ? result : (result.data || []);
+
+                if (!Array.isArray(trelloMatchesData)) {
+                    console.error('Unexpected data format from /contacts:', result);
+                    trelloMatchesData = [];
+                }
+
+                filterTrelloMatches();
             } catch (err) {
-                error.textContent = 'Hastaneler yüklenirken hata oluştu: ' + err.message;
+                error.textContent = 'Hastaneler yuklenirken hata olustu: ' + err.message;
                 error.style.display = 'block';
-                console.error('Error loading contacts:', err);
+                console.error('Error loading trello matches:', err);
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Veri yüklenemedi</td></tr>';
             } finally {
                 loading.style.display = 'none';
             }
         }
 
-        // Display contacts
-        function displayContacts(data) {
-            const tbody = document.getElementById('contacts-tbody');
-            tbody.innerHTML = data.map(contact => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 text-sm font-medium">${contact.trelloBaslik || ''}</td>
-                    <td class="px-4 py-3 text-sm">${contact.hospital?.hastaneAdi || 'Eşleştirilemedi'}</td>
-                    <td class="px-4 py-3 text-sm">${contact.hospital?.il || '-'}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 rounded text-xs font-medium ${contact.hospital?.type?.name === 'kamu' ? 'bg-green-100 text-green-800' : (contact.hospital?.type?.name === 'özel' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')}">
-                            ${contact.hospital?.type?.displayName || '-'}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                            ${contact.hospital?.subtype?.displayName || '-'}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-400 italic">-</td>
-                </tr>
-            `).join('');
+        function displayTrelloMatches(data) {
+            const tbody = document.getElementById('trelloMatches-tbody');
+
+            if (!Array.isArray(data)) {
+                console.error('displayTrelloMatches: data is not an array:', data);
+                data = [];
+            }
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Veri bulunamadı</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(trelloMatch => {
+                const hasHospital = trelloMatch.hospital && trelloMatch.hospital.hastaneAdi;
+                const hospitalNameClass = hasHospital ? '' : 'unmatched-hospital';
+                const hospitalName = hasHospital ? trelloMatch.hospital.hastaneAdi : 'Eşleştirilemedi';
+                const onClick = hasHospital ? '' : `onclick="openMatchingModal('${trelloMatch.id}', '${escapeHtml(trelloMatch.trelloBaslik)}')"`;
+
+                let cityDisplay = '-';
+                if (trelloMatch.hospital?.city?.name) {
+                    cityDisplay = trelloMatch.hospital.city.name;
+                    if (trelloMatch.hospital.city.plateCode) {
+                        cityDisplay += ` <span class="text-gray-500 text-xs">(${trelloMatch.hospital.city.plateCode})</span>`;
+                    }
+                } else if (trelloMatch.hospital?.il) {
+                    cityDisplay = trelloMatch.hospital.il;
+                }
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-medium">${trelloMatch.trelloBaslik || ''}</td>
+                        <td class="px-4 py-3 text-sm ${hospitalNameClass}" ${onClick} title="${hasHospital ? '' : 'Eslestirmek icin tiklayin'}">
+                            ${hospitalName}
+                        </td>
+                        <td class="px-4 py-3 text-sm">${cityDisplay}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 rounded text-xs font-medium ${trelloMatch.hospital?.type?.name === 'kamu' ? 'bg-green-100 text-green-800' : (trelloMatch.hospital?.type?.name === 'özel' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')}">
+                                ${trelloMatch.hospital?.type?.displayName || '-'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                ${trelloMatch.hospital?.subtype?.displayName || '-'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-400 italic">-</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        // Filter contacts
-        function filterContacts() {
-            const searchText = document.getElementById('search-contacts').value.toLowerCase();
-
-            const filtered = contactsData.filter(contact => {
-                return (
-                    (contact.trelloBaslik || '').toLowerCase().includes(searchText) ||
-                    (contact.hospital?.hastaneAdi || '').toLowerCase().includes(searchText) ||
-                    (contact.hospital?.il || '').toLowerCase().includes(searchText) ||
-                    (contact.hospital?.type?.name || '').toLowerCase().includes(searchText) ||
-                    (contact.hospital?.type?.displayName || '').toLowerCase().includes(searchText) ||
-                    (contact.hospital?.subtype?.name || '').toLowerCase().includes(searchText) ||
-                    (contact.hospital?.subtype?.displayName || '').toLowerCase().includes(searchText)
-                );
-            });
-
-            displayContacts(filtered);
-            document.getElementById('contacts-count').textContent = `${filtered.length} / ${contactsData.length} hastane gösteriliyor`;
-        }
-
-        // Load raw data
         async function loadRawData() {
             const loading = document.getElementById('rawdata-loading');
             const error = document.getElementById('rawdata-error');
@@ -482,118 +1082,803 @@
                 const response = await fetch(`${API_URL}/raw-data`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-                rawDataData = await response.json();
+                const result = await response.json();
+                rawDataData = Array.isArray(result) ? result : (result.data || []);
+
+                if (!Array.isArray(rawDataData)) {
+                    console.error('Unexpected data format from /raw-data:', result);
+                    rawDataData = [];
+                }
+
                 displayRawData(rawDataData);
-                document.getElementById('rawdata-count').textContent = `Toplam ${rawDataData.length} kayıt`;
+                document.getElementById('rawdata-count').textContent = `Toplam ${rawDataData.length} kayit`;
             } catch (err) {
-                error.textContent = 'Raw data yüklenirken hata oluştu: ' + err.message;
+                error.textContent = 'Raw data yuklenirken hata olustu: ' + err.message;
                 error.style.display = 'block';
                 console.error('Error loading raw data:', err);
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Veri yüklenemedi</td></tr>';
             } finally {
                 loading.style.display = 'none';
             }
         }
 
-        // Display raw data
         function displayRawData(data) {
             const tbody = document.getElementById('rawdata-tbody');
-            tbody.innerHTML = data.map(item => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 text-sm">${item.title || ''}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">${(item.description || '').substring(0, 100)}${item.description && item.description.length > 100 ? '...' : ''}</td>
-                    <td class="px-4 py-3 text-sm">${item.listName || ''}</td>
-                    <td class="px-4 py-3 text-sm">${item.shortUrl || '-'}</td>
-                    <td class="px-4 py-3 text-sm">${item.fullUrl || '-'}</td>
-                </tr>
-            `).join('');
+
+            if (!Array.isArray(data)) {
+                console.error('displayRawData: data is not an array:', data);
+                data = [];
+            }
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Veri bulunamadı</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(item => {
+                const descriptionPreview = (item.description || '').substring(0, 100) + (item.description && item.description.length > 100 ? '...' : '');
+                const createdAt = item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : '-';
+                const updatedAt = item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('tr-TR') : '-';
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-medium">${item.title || '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600" title="${escapeHtml(item.description || '')}">${descriptionPreview}</td>
+                        <td class="px-4 py-3 text-sm">${createdAt}</td>
+                        <td class="px-4 py-3 text-sm">${updatedAt}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        // Filter raw data
+        async function loadJobTitles() {
+            const loading = document.getElementById('jobtitles-loading');
+            const error = document.getElementById('jobtitles-error');
+            const tbody = document.getElementById('jobtitles-tbody');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            tbody.innerHTML = '';
+
+            try {
+                const response = await fetch(`${API_URL}/job-titles`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const result = await response.json();
+                jobTitlesData = Array.isArray(result) ? result : (result.data || []);
+
+                if (!Array.isArray(jobTitlesData)) {
+                    console.error('Unexpected data format from /job-titles:', result);
+                    jobTitlesData = [];
+                }
+
+                displayJobTitles(jobTitlesData);
+                document.getElementById('jobtitles-count').textContent = `Toplam ${jobTitlesData.length} unvan`;
+            } catch (err) {
+                error.textContent = 'Job titles yuklenirken hata olustu: ' + err.message;
+                error.style.display = 'block';
+                console.error('Error loading job titles:', err);
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Veri yüklenemedi</td></tr>';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayJobTitles(data) {
+            const tbody = document.getElementById('jobtitles-tbody');
+
+            if (!Array.isArray(data)) {
+                console.error('displayJobTitles: data is not an array:', data);
+                data = [];
+            }
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Veri bulunamadı</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(item => {
+                const createdAt = item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : '-';
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">${item.id}</td>
+                        <td class="px-4 py-3 text-sm font-medium">${item.title || '-'}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                ${item.displayName || '-'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">${createdAt}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadHospitalTypes() {
+            const loading = document.getElementById('hospitaltypes-loading');
+            const error = document.getElementById('hospitaltypes-error');
+            const tbody = document.getElementById('hospitaltypes-tbody');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            tbody.innerHTML = '';
+
+            try {
+                const response = await fetch(`${API_URL}/hospital-types`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const result = await response.json();
+                hospitalTypesData = Array.isArray(result) ? result : (result.data || []);
+
+                if (!Array.isArray(hospitalTypesData)) {
+                    console.error('Unexpected data format from /hospital-types:', result);
+                    hospitalTypesData = [];
+                }
+
+                displayHospitalTypes(hospitalTypesData);
+                document.getElementById('hospitaltypes-count').textContent = `Toplam ${hospitalTypesData.length} tip`;
+            } catch (err) {
+                error.textContent = 'Hospital types yuklenirken hata olustu: ' + err.message;
+                error.style.display = 'block';
+                console.error('Error loading hospital types:', err);
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Veri yüklenemedi</td></tr>';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayHospitalTypes(data) {
+            const tbody = document.getElementById('hospitaltypes-tbody');
+
+            if (!Array.isArray(data)) {
+                console.error('displayHospitalTypes: data is not an array:', data);
+                data = [];
+            }
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Veri bulunamadı</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(item => {
+                const createdAt = item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : '-';
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">${item.id}</td>
+                        <td class="px-4 py-3 text-sm font-medium">${item.name || '-'}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 rounded text-xs font-medium ${item.name === 'kamu' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
+                                ${item.displayName || '-'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">${createdAt}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadHospitalSubtypes() {
+            const loading = document.getElementById('hospitalsubtypes-loading');
+            const error = document.getElementById('hospitalsubtypes-error');
+            const tbody = document.getElementById('hospitalsubtypes-tbody');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            tbody.innerHTML = '';
+
+            try {
+                const response = await fetch(`${API_URL}/hospital-subtypes`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const result = await response.json();
+                hospitalSubtypesData = Array.isArray(result) ? result : (result.data || []);
+
+                if (!Array.isArray(hospitalSubtypesData)) {
+                    console.error('Unexpected data format from /hospital-subtypes:', result);
+                    hospitalSubtypesData = [];
+                }
+
+                displayHospitalSubtypes(hospitalSubtypesData);
+                document.getElementById('hospitalsubtypes-count').textContent = `Toplam ${hospitalSubtypesData.length} alt tip`;
+            } catch (err) {
+                error.textContent = 'Hospital subtypes yuklenirken hata olustu: ' + err.message;
+                error.style.display = 'block';
+                console.error('Error loading hospital subtypes:', err);
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Veri yüklenemedi</td></tr>';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayHospitalSubtypes(data) {
+            const tbody = document.getElementById('hospitalsubtypes-tbody');
+
+            if (!Array.isArray(data)) {
+                console.error('displayHospitalSubtypes: data is not an array:', data);
+                data = [];
+            }
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Veri bulunamadı</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(item => {
+                const createdAt = item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : '-';
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">${item.id}</td>
+                        <td class="px-4 py-3 text-sm font-medium">${item.name || '-'}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                ${item.displayName || '-'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 rounded text-xs font-medium ${item.parentType?.name === 'kamu' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
+                                ${item.parentType?.displayName || '-'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">${createdAt}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function loadContactPersons() {
+            const loading = document.getElementById('contactPersons-loading');
+            const error = document.getElementById('contactPersons-error');
+            const tbody = document.getElementById('contactPersons-tbody');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            tbody.innerHTML = '';
+
+            try {
+                const response = await fetch(`${API_URL}/contact-persons`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const result = await response.json();
+                contactPersonsData = Array.isArray(result) ? result : (result.data || []);
+
+                if (!Array.isArray(contactPersonsData)) {
+                    console.error('Unexpected data format from /contact-persons:', result);
+                    contactPersonsData = [];
+                }
+
+                displayContactPersons(contactPersonsData);
+
+                const countText = `Toplam ${contactPersonsData.length} kişi`;
+                document.getElementById('contactPersons-count').textContent = countText;
+                document.getElementById('contacts-count').textContent = `(${contactPersonsData.length})`;
+            } catch (err) {
+                error.textContent = 'Kişiler yuklenirken hata olustu: ' + err.message;
+                error.style.display = 'block';
+                console.error('Error loading contact persons:', err);
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Veri yüklenemedi</td></tr>';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayContactPersons(data) {
+            const tbody = document.getElementById('contactPersons-tbody');
+
+            if (!Array.isArray(data)) {
+                console.error('displayContactPersons: data is not an array:', data);
+                data = [];
+            }
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Veri bulunamadı</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(person => {
+                const hospitalDisplay = person.hospital
+                    ? `${person.hospital.hastaneAdi}${person.hospital.city ? ' - ' + person.hospital.city.name : (person.hospital.il ? ' - ' + person.hospital.il : '')}`
+                    : '-';
+                const jobTitleDisplay = person.jobTitle?.displayName || '-';
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-medium">${person.firstName || '-'}</td>
+                        <td class="px-4 py-3 text-sm font-medium">${person.lastName || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${person.phone || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${person.email || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${hospitalDisplay}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                ${jobTitleDisplay}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="flex gap-2">
+                                <button onclick="openEditContactPersonModal('${person.id}')" class="action-button action-button-edit">
+                                    Düzenle
+                                </button>
+                                <button onclick="deleteContactPerson('${person.id}', '${escapeHtml(person.firstName)} ${escapeHtml(person.lastName)}')" class="action-button action-button-delete">
+                                    Sil
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // NEW: Filter Contact Persons
+        function filterContactPersons() {
+            const searchText = document.getElementById('search-contactPersons').value.toLowerCase();
+
+            const filtered = contactPersonsData.filter(person => {
+                const hospitalName = person.hospital?.hastaneAdi || '';
+                const cityName = person.hospital?.city?.name || person.hospital?.il || '';
+
+                return (
+                    (person.firstName || '').toLowerCase().includes(searchText) ||
+                    (person.lastName || '').toLowerCase().includes(searchText) ||
+                    (person.phone || '').toLowerCase().includes(searchText) ||
+                    (person.email || '').toLowerCase().includes(searchText) ||
+                    hospitalName.toLowerCase().includes(searchText) ||
+                    cityName.toLowerCase().includes(searchText) ||
+                    (person.jobTitle?.displayName || '').toLowerCase().includes(searchText)
+                );
+            });
+
+            displayContactPersons(filtered);
+            document.getElementById('contactPersons-count').textContent = `${filtered.length} / ${contactPersonsData.length} kişi gösteriliyor`;
+        }
+
+        // NEW: Open Add Contact Person Modal
+        async function openAddContactPersonModal() {
+            currentEditingContact = null;
+
+            try {
+                // Load hospitals for dropdown
+                const hospitalsResponse = await fetch(`${API_URL}/hospital-references`);
+                if (!hospitalsResponse.ok) throw new Error('Hastaneler yuklenemedi');
+                hospitalsForContactModal = await hospitalsResponse.json();
+
+                // Sort hospitals alphabetically
+                const sortedHospitals = [...hospitalsForContactModal].sort((a, b) =>
+                    a.hastaneAdi.localeCompare(b.hastaneAdi, 'tr', { sensitivity: 'base' })
+                );
+
+                const hospitalSelect = document.getElementById('contactPersonHospital');
+                hospitalSelect.innerHTML = '<option value="">Hastane seçin...</option>' +
+                    sortedHospitals.map(hospital => {
+                        const cityInfo = hospital.city?.name || hospital.il || '';
+                        return `<option value="${hospital.id}">${hospital.hastaneAdi}${cityInfo ? ' - ' + cityInfo : ''}</option>`;
+                    }).join('');
+
+                // Load job titles for dropdown
+                const jobTitlesResponse = await fetch(`${API_URL}/job-titles`);
+                if (!jobTitlesResponse.ok) throw new Error('Unvanlar yuklenemedi');
+                jobTitlesForContactModal = await jobTitlesResponse.json();
+
+                const jobTitleSelect = document.getElementById('contactPersonJobTitle');
+                jobTitleSelect.innerHTML = '<option value="">Ünvan seçin...</option>' +
+                    jobTitlesForContactModal.map(jobTitle =>
+                        `<option value="${jobTitle.id}">${jobTitle.displayName}</option>`
+                    ).join('');
+
+                // Reset form
+                document.getElementById('contactPersonForm').reset();
+                document.getElementById('contactPersonId').value = '';
+                document.getElementById('contactPersonModalTitle').textContent = '+ Yeni Kişi Ekle';
+                document.getElementById('contactPersonSubmitBtn').textContent = 'Kaydet';
+                document.getElementById('contactPersonError').style.display = 'none';
+
+                // Clear all error messages
+                document.querySelectorAll('.form-error').forEach(el => el.style.display = 'none');
+
+                // Show modal
+                document.getElementById('contactPersonModal').classList.add('show');
+            } catch (err) {
+                showNotification('Hata: ' + err.message, 'error');
+            }
+        }
+
+        // NEW: Open Edit Contact Person Modal
+        async function openEditContactPersonModal(contactId) {
+            try {
+                // Load the contact data
+                const response = await fetch(`${API_URL}/contact-persons/${contactId}`);
+                if (!response.ok) throw new Error('Kişi bilgileri yuklenemedi');
+
+                const contact = await response.json();
+                currentEditingContact = contact;
+
+                // Load hospitals for dropdown
+                const hospitalsResponse = await fetch(`${API_URL}/hospital-references`);
+                if (!hospitalsResponse.ok) throw new Error('Hastaneler yuklenemedi');
+                hospitalsForContactModal = await hospitalsResponse.json();
+
+                // Sort hospitals alphabetically
+                const sortedHospitals = [...hospitalsForContactModal].sort((a, b) =>
+                    a.hastaneAdi.localeCompare(b.hastaneAdi, 'tr', { sensitivity: 'base' })
+                );
+
+                const hospitalSelect = document.getElementById('contactPersonHospital');
+                hospitalSelect.innerHTML = '<option value="">Hastane seçin...</option>' +
+                    sortedHospitals.map(hospital => {
+                        const cityInfo = hospital.city?.name || hospital.il || '';
+                        return `<option value="${hospital.id}">${hospital.hastaneAdi}${cityInfo ? ' - ' + cityInfo : ''}</option>`;
+                    }).join('');
+
+                // Load job titles for dropdown
+                const jobTitlesResponse = await fetch(`${API_URL}/job-titles`);
+                if (!jobTitlesResponse.ok) throw new Error('Unvanlar yuklenemedi');
+                jobTitlesForContactModal = await jobTitlesResponse.json();
+
+                const jobTitleSelect = document.getElementById('contactPersonJobTitle');
+                jobTitleSelect.innerHTML = '<option value="">Ünvan seçin...</option>' +
+                    jobTitlesForContactModal.map(jobTitle =>
+                        `<option value="${jobTitle.id}">${jobTitle.displayName}</option>`
+                    ).join('');
+
+                // Populate form with contact data
+                document.getElementById('contactPersonId').value = contact.id;
+                document.getElementById('contactPersonFirstName').value = contact.firstName || '';
+                document.getElementById('contactPersonLastName').value = contact.lastName || '';
+                document.getElementById('contactPersonPhone').value = contact.phone || '';
+                document.getElementById('contactPersonEmail').value = contact.email || '';
+                document.getElementById('contactPersonNotes').value = contact.notes || '';
+                document.getElementById('contactPersonHospital').value = contact.hospitalId || '';
+                document.getElementById('contactPersonJobTitle').value = contact.jobTitleId || '';
+
+                // Update modal title
+                document.getElementById('contactPersonModalTitle').textContent = 'Kişiyi Düzenle';
+                document.getElementById('contactPersonSubmitBtn').textContent = 'Güncelle';
+                document.getElementById('contactPersonError').style.display = 'none';
+
+                // Clear all error messages
+                document.querySelectorAll('.form-error').forEach(el => el.style.display = 'none');
+
+                // Show modal
+                document.getElementById('contactPersonModal').classList.add('show');
+            } catch (err) {
+                showNotification('Hata: ' + err.message, 'error');
+            }
+        }
+
+        // NEW: Close Contact Person Modal
+        function closeContactPersonModal() {
+            document.getElementById('contactPersonModal').classList.remove('show');
+            currentEditingContact = null;
+        }
+
+        // NEW: Save Contact Person (Create or Update)
+        async function saveContactPerson(event) {
+            event.preventDefault();
+
+            const errorDiv = document.getElementById('contactPersonError');
+            errorDiv.style.display = 'none';
+
+            // Clear all field-specific errors
+            document.querySelectorAll('.form-error').forEach(el => el.style.display = 'none');
+
+            const contactId = document.getElementById('contactPersonId').value;
+            const firstName = document.getElementById('contactPersonFirstName').value.trim();
+            const lastName = document.getElementById('contactPersonLastName').value.trim();
+            const phone = document.getElementById('contactPersonPhone').value.trim();
+            const email = document.getElementById('contactPersonEmail').value.trim();
+            const notes = document.getElementById('contactPersonNotes').value.trim();
+            const hospitalId = document.getElementById('contactPersonHospital').value;
+            const jobTitleId = document.getElementById('contactPersonJobTitle').value;
+
+            // Client-side validation
+            let hasError = false;
+
+            if (!firstName) {
+                document.getElementById('error-firstName').textContent = 'Ad gereklidir';
+                document.getElementById('error-firstName').style.display = 'block';
+                hasError = true;
+            }
+
+            if (!lastName) {
+                document.getElementById('error-lastName').textContent = 'Soyad gereklidir';
+                document.getElementById('error-lastName').style.display = 'block';
+                hasError = true;
+            }
+
+            if (email && !isValidEmail(email)) {
+                document.getElementById('error-email').textContent = 'Geçerli bir email adresi giriniz';
+                document.getElementById('error-email').style.display = 'block';
+                hasError = true;
+            }
+
+            if (hasError) {
+                return;
+            }
+
+            const data = {
+                firstName,
+                lastName,
+                phone: phone || null,
+                email: email || null,
+                notes: notes || null,
+                hospitalId: hospitalId || null,
+                jobTitleId: jobTitleId || null
+            };
+
+            const submitBtn = document.getElementById('contactPersonSubmitBtn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Kaydediliyor...';
+
+            try {
+                const url = contactId
+                    ? `${API_URL}/contact-persons/${contactId}`
+                    : `${API_URL}/contact-persons`;
+
+                const method = contactId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Kayit basarisiz');
+                }
+
+                const savedContact = await response.json();
+
+                // Close modal
+                closeContactPersonModal();
+
+                // Reload contacts list
+                await loadContactPersons();
+
+                // Show success notification
+                const action = contactId ? 'güncellendi' : 'eklendi';
+                showNotification(`${savedContact.firstName} ${savedContact.lastName} başarıyla ${action}!`, 'success');
+
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+
+        // NEW: Delete Contact Person
+        async function deleteContactPerson(contactId, contactName) {
+            if (!confirm(`"${contactName}" isimli kişiyi silmek istediğinizden emin misiniz?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/contact-persons/${contactId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Silme işlemi başarısız');
+                }
+
+                // Reload contacts list
+                await loadContactPersons();
+
+                // Show success notification
+                showNotification(`${contactName} başarıyla silindi!`, 'success');
+
+            } catch (err) {
+                showNotification('Hata: ' + err.message, 'error');
+            }
+        }
+
+        // Helper function to validate email
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // NEW: Toggle unmatched trello matches filter
+        function toggleUnmatchedTrelloMatchesFilter() {
+            const checkbox = document.getElementById('filter-unmatched-trelloMatches');
+            showUnmatchedTrelloMatchesOnly = checkbox.checked;
+            filterTrelloMatches(); // Refresh display with new filter state
+        }
+
+        // UPDATED: Filter trello matches - now supports both search and unmatched filter
+        function filterTrelloMatches() {
+            const searchText = document.getElementById('search-trelloMatches').value.toLowerCase();
+
+            let filtered = trelloMatchesData;
+
+            // Apply unmatched filter first if active
+            if (showUnmatchedTrelloMatchesOnly) {
+                filtered = filtered.filter(trelloMatch => {
+                    // TrelloMatch is unmatched if hospitalId is null OR hospital object is null
+                    return !trelloMatch.hospitalId || !trelloMatch.hospital;
+                });
+            }
+
+            // Then apply search filter
+            if (searchText) {
+                filtered = filtered.filter(trelloMatch => {
+                    return (
+                        (trelloMatch.trelloBaslik || '').toLowerCase().includes(searchText) ||
+                        (trelloMatch.hospital?.hastaneAdi || '').toLowerCase().includes(searchText) ||
+                        (trelloMatch.hospital?.il || '').toLowerCase().includes(searchText) ||
+                        (trelloMatch.hospital?.city?.name || '').toLowerCase().includes(searchText)
+                    );
+                });
+            }
+
+            displayTrelloMatches(filtered);
+
+            // Update count display based on filter state
+            const countEl = document.getElementById('trelloMatches-count');
+            if (showUnmatchedTrelloMatchesOnly) {
+                const totalUnmatched = trelloMatchesData.filter(tm => !tm.hospitalId || !tm.hospital).length;
+                if (searchText) {
+                    countEl.textContent = `${filtered.length} / ${totalUnmatched} eşleştirilemedi gösteriliyor (Toplam: ${trelloMatchesData.length})`;
+                } else {
+                    countEl.textContent = `${totalUnmatched} eşleştirilemedi / ${trelloMatchesData.length} toplam`;
+                }
+            } else {
+                if (searchText) {
+                    countEl.textContent = `${filtered.length} / ${trelloMatchesData.length} hastane gosteriliyor`;
+                } else {
+                    countEl.textContent = `Toplam ${trelloMatchesData.length} hastane`;
+                }
+            }
+        }
+
         function filterRawData() {
             const searchText = document.getElementById('search-rawdata').value.toLowerCase();
 
             const filtered = rawDataData.filter(item => {
                 return (
                     (item.title || '').toLowerCase().includes(searchText) ||
-                    (item.description || '').toLowerCase().includes(searchText) ||
-                    (item.listName || '').toLowerCase().includes(searchText)
+                    (item.description || '').toLowerCase().includes(searchText)
                 );
             });
 
             displayRawData(filtered);
-            document.getElementById('rawdata-count').textContent = `${filtered.length} / ${rawDataData.length} kayıt gösteriliyor`;
+            document.getElementById('rawdata-count').textContent = `${filtered.length} / ${rawDataData.length} kayit gosteriliyor`;
         }
 
-        // Load references
-        async function loadReferences() {
-            const tbody = document.getElementById('references-tbody');
-            const statsDiv = document.getElementById('references-stats');
+        function filterJobTitles() {
+            const searchText = document.getElementById('search-jobtitles').value.toLowerCase();
 
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Yükleniyor...</td></tr>';
-            statsDiv.innerHTML = '';
+            const filtered = jobTitlesData.filter(item => {
+                return (
+                    (item.title || '').toLowerCase().includes(searchText) ||
+                    (item.displayName || '').toLowerCase().includes(searchText)
+                );
+            });
+
+            displayJobTitles(filtered);
+            document.getElementById('jobtitles-count').textContent = `${filtered.length} / ${jobTitlesData.length} unvan gosteriliyor`;
+        }
+
+        function filterHospitalTypes() {
+            const searchText = document.getElementById('search-hospitaltypes').value.toLowerCase();
+
+            const filtered = hospitalTypesData.filter(item => {
+                return (
+                    (item.name || '').toLowerCase().includes(searchText) ||
+                    (item.displayName || '').toLowerCase().includes(searchText)
+                );
+            });
+
+            displayHospitalTypes(filtered);
+            document.getElementById('hospitaltypes-count').textContent = `${filtered.length} / ${hospitalTypesData.length} tip gosteriliyor`;
+        }
+
+        function filterHospitalSubtypes() {
+            const searchText = document.getElementById('search-hospitalsubtypes').value.toLowerCase();
+
+            const filtered = hospitalSubtypesData.filter(item => {
+                return (
+                    (item.name || '').toLowerCase().includes(searchText) ||
+                    (item.displayName || '').toLowerCase().includes(searchText) ||
+                    (item.parentType?.displayName || '').toLowerCase().includes(searchText)
+                );
+            });
+
+            displayHospitalSubtypes(filtered);
+            document.getElementById('hospitalsubtypes-count').textContent = `${filtered.length} / ${hospitalSubtypesData.length} alt tip gosteriliyor`;
+        }
+
+        // FEATURE 1: Toggle unmatched hospitals filter
+        async function toggleUnmatchedHospitalsFilter() {
+            const checkbox = document.getElementById('filter-unmatched-hospitals');
+            showUnmatchedHospitals = checkbox.checked;
+            await loadReferences();
+        }
+
+        // Load references - FEATURE 1: Modified to support unmatched filter
+        async function loadReferences() {
+            const loading = document.getElementById('references-loading');
+            const error = document.getElementById('references-error');
+            const tbody = document.getElementById('references-tbody');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            tbody.innerHTML = '';
 
             try {
-                // Load references data
-                const response = await fetch(`${API_URL}/hospital-references`);
+                const url = showUnmatchedHospitals
+                    ? `${API_URL}/hospital-references?unused=true`
+                    : `${API_URL}/hospital-references`;
+
+                const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                referencesData = await response.json();
 
-                // Update tab count
-                document.getElementById('hospitals-count').textContent = `(${referencesData.length})`;
+                const result = await response.json();
+                referencesData = Array.isArray(result) ? result : (result.data || []);
 
-                // Load stats
-                const statsResponse = await fetch(`${API_URL}/hospital-references/stats`);
-                if (statsResponse.ok) {
-                    const stats = await statsResponse.json();
-
-                    // Display stats
-                    statsDiv.innerHTML = `
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Toplam</div>
-                            <div class="text-2xl font-bold text-blue-600">${stats.total}</div>
-                        </div>
-                        <div class="bg-green-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Kamu</div>
-                            <div class="text-2xl font-bold text-green-600">${stats.byType.kamu}</div>
-                        </div>
-                        <div class="bg-purple-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Özel</div>
-                            <div class="text-2xl font-bold text-purple-600">${stats.byType.özel}</div>
-                        </div>
-                        <div class="bg-orange-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Üniversite</div>
-                            <div class="text-2xl font-bold text-orange-600">${stats.kamuSubtypes.universite}</div>
-                        </div>
-                    `;
+                if (!Array.isArray(referencesData)) {
+                    console.error('Unexpected data format from /hospital-references:', result);
+                    referencesData = [];
                 }
 
                 displayReferences(referencesData);
-                document.getElementById('references-count').textContent = `Toplam ${referencesData.length} referans hastane`;
+                document.getElementById('hospitals-count').textContent = `(${referencesData.length})`;
+
+                const countText = showUnmatchedHospitals
+                    ? `${referencesData.length} eşleştirilememiş hastane`
+                    : `Toplam ${referencesData.length} hastane`;
+                document.getElementById('references-count').textContent = countText;
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Yükleme hatası: ${err.message}</td></tr>`;
+                error.textContent = 'Referanslar yuklenirken hata olustu: ' + err.message;
+                error.style.display = 'block';
                 console.error('Error loading references:', err);
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Veri yüklenemedi</td></tr>';
+            } finally {
+                loading.style.display = 'none';
             }
         }
 
-        // Display references
         function displayReferences(data) {
             const tbody = document.getElementById('references-tbody');
-            tbody.innerHTML = data.map(ref => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 text-sm">${ref.hastaneAdi || ''}</td>
-                    <td class="px-4 py-3 text-sm">${ref.il || ''}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 rounded text-xs font-medium ${ref.type?.name === 'kamu' ? 'bg-green-100 text-green-800' : (ref.type?.name === 'özel' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')}">
-                            ${ref.type?.displayName || '-'}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                            ${ref.subtype?.displayName || '-'}
-                        </span>
-                    </td>
-                </tr>
-            `).join('');
+
+            if (!Array.isArray(data)) {
+                console.error('displayReferences: data is not an array:', data);
+                data = [];
+            }
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Veri bulunamadı</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(ref => {
+                const cityDisplay = ref.city
+                    ? `${ref.city.name}${ref.city.plateCode ? ` <span class="text-gray-500 text-xs">(${ref.city.plateCode})</span>` : ''}`
+                    : (ref.il || '-');
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-medium">${ref.hastaneAdi || ''}</td>
+                        <td class="px-4 py-3 text-sm">${cityDisplay}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 rounded text-xs font-medium ${ref.type?.name === 'kamu' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
+                                ${ref.type?.displayName || '-'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                ${ref.subtype?.displayName || '-'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // Filter references
@@ -604,394 +1889,654 @@
                 return (
                     (ref.hastaneAdi || '').toLowerCase().includes(searchText) ||
                     (ref.il || '').toLowerCase().includes(searchText) ||
-                    (ref.type?.name || '').toLowerCase().includes(searchText) ||
-                    (ref.type?.displayName || '').toLowerCase().includes(searchText) ||
-                    (ref.subtype?.name || '').toLowerCase().includes(searchText) ||
-                    (ref.subtype?.displayName || '').toLowerCase().includes(searchText)
+                    (ref.city?.name || '').toLowerCase().includes(searchText)
                 );
             });
 
             displayReferences(filtered);
-            document.getElementById('references-count').textContent = `${filtered.length} / ${referencesData.length} referans hastane gösteriliyor`;
+            const countText = showUnmatchedHospitals
+                ? `${filtered.length} / ${referencesData.length} eşleştirilememiş hastane gösteriliyor`
+                : `${filtered.length} / ${referencesData.length} hastane gosteriliyor`;
+            document.getElementById('references-count').textContent = countText;
         }
 
-        // Load job titles
-        async function loadJobTitles() {
-            const tbody = document.getElementById('jobtitles-tbody');
-            const statsDiv = document.getElementById('jobtitles-stats');
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Yükleniyor...</td></tr>';
-            statsDiv.innerHTML = '';
+        // FIXED: Open matching modal with button state reset
+        async function openMatchingModal(trelloMatchId, trelloMatchTitle) {
+            currentTrelloMatch = { id: trelloMatchId, title: trelloMatchTitle };
+            selectedHospital = null;
+
+            const modal = document.getElementById('hospital-matching-modal');
+            const modalTitle = document.getElementById('modal-trelloMatch-title');
+            const confirmBtn = document.getElementById('confirm-matching-btn');
+            const selectedHospitalName = document.getElementById('selected-hospital-name');
+
+            // Reset modal state
+            modalTitle.textContent = trelloMatchTitle;
+            selectedHospitalName.textContent = 'Bir hastane secin';
+
+            // CRITICAL FIX: Reset button state to initial values
+            confirmBtn.textContent = 'Onayla ve Kaydet';
+            confirmBtn.disabled = true;
+
+            modal.classList.add('show');
+
+            // Load hospitals
+            await loadHospitalsForModal();
+        }
+
+        // FIXED: Close matching modal with button state reset
+        function closeMatchingModal() {
+            const modal = document.getElementById('hospital-matching-modal');
+            const confirmBtn = document.getElementById('confirm-matching-btn');
+
+            modal.classList.remove('show');
+            document.getElementById('modal-search').value = '';
+            currentTrelloMatch = null;
+            selectedHospital = null;
+
+            // ADDITIONAL FIX: Reset button state when closing modal
+            confirmBtn.textContent = 'Onayla ve Kaydet';
+            confirmBtn.disabled = true;
+        }
+
+        // Load hospitals for modal
+        async function loadHospitalsForModal() {
+            const loading = document.getElementById('modal-loading');
+            const error = document.getElementById('modal-error');
+            const list = document.getElementById('modal-hospitals-list');
+            const noResults = document.getElementById('modal-no-results');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            list.innerHTML = '';
+            noResults.style.display = 'none';
 
             try {
-                // Load job titles data
-                const response = await fetch(`${API_URL}/job-titles`);
+                const unusedOnly = document.getElementById('unused-only').checked;
+                const url = `${API_URL}/hospital-references${unusedOnly ? '?unused=true' : ''}`;
+                const response = await fetch(url);
+
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                jobTitlesData = await response.json();
 
-                // Load stats
-                const statsResponse = await fetch(`${API_URL}/job-titles/stats`);
-                if (statsResponse.ok) {
-                    const stats = await statsResponse.json();
-
-                    // Display stats
-                    statsDiv.innerHTML = `
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Toplam</div>
-                            <div class="text-2xl font-bold text-blue-600">${stats.total}</div>
-                        </div>
-                        <div class="bg-green-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Aktif</div>
-                            <div class="text-2xl font-bold text-green-600">${stats.active}</div>
-                        </div>
-                        <div class="bg-red-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Pasif</div>
-                            <div class="text-2xl font-bold text-red-600">${stats.inactive}</div>
-                        </div>
-                    `;
-                }
-
-                displayJobTitles(jobTitlesData);
-                document.getElementById('jobtitles-count').textContent = `Toplam ${jobTitlesData.length} iş unvanı`;
+                modalHospitals = await response.json();
+                displayModalHospitals(modalHospitals);
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Yükleme hatası: ${err.message}</td></tr>`;
-                console.error('Error loading job titles:', err);
+                error.textContent = 'Hastaneler yuklenirken hata olustu: ' + err.message;
+                error.style.display = 'block';
+                console.error('Error loading modal hospitals:', err);
+            } finally {
+                loading.style.display = 'none';
             }
         }
 
-        // Display job titles
-        function displayJobTitles(data) {
-            const tbody = document.getElementById('jobtitles-tbody');
-            tbody.innerHTML = data.map(job => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 text-sm font-medium">${job.displayName || ''}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">${job.slug || ''}</td>
-                    <td class="px-4 py-3 text-sm">${job.description || '-'}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 rounded text-xs font-medium ${job.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                            ${job.isActive ? 'Aktif' : 'Pasif'}
-                        </span>
-                    </td>
-                </tr>
-            `).join('');
-        }
+        // FIXED: Search hospitals in modal - Now properly reloads data from API
+        async function searchHospitalsInModal() {
+            const searchText = document.getElementById('modal-search').value.toLowerCase().trim();
+            const unusedOnly = document.getElementById('unused-only').checked;
 
-        // Filter job titles
-        function filterJobTitles() {
-            const searchText = document.getElementById('search-jobtitles').value.toLowerCase();
-
-            const filtered = jobTitlesData.filter(job => {
-                return (
-                    (job.displayName || '').toLowerCase().includes(searchText) ||
-                    (job.slug || '').toLowerCase().includes(searchText) ||
-                    (job.description || '').toLowerCase().includes(searchText)
-                );
-            });
-
-            displayJobTitles(filtered);
-            document.getElementById('jobtitles-count').textContent = `${filtered.length} / ${jobTitlesData.length} iş unvanı gösteriliyor`;
-        }
-
-        // Load hospital types
-        async function loadHospitalTypes() {
-            const tbody = document.getElementById('hospitaltypes-tbody');
-            const statsDiv = document.getElementById('hospitaltypes-stats');
-
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">Yükleniyor...</td></tr>';
-            statsDiv.innerHTML = '';
-
-            try {
-                // Load hospital types data
-                const response = await fetch(`${API_URL}/hospital-types`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                hospitalTypesData = await response.json();
-
-                // Load stats
-                const statsResponse = await fetch(`${API_URL}/hospital-types/stats`);
-                if (statsResponse.ok) {
-                    const stats = await statsResponse.json();
-
-                    // Display stats
-                    statsDiv.innerHTML = `
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Toplam</div>
-                            <div class="text-2xl font-bold text-blue-600">${stats.total}</div>
-                        </div>
-                        <div class="bg-green-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Aktif</div>
-                            <div class="text-2xl font-bold text-green-600">${stats.active}</div>
-                        </div>
-                        <div class="bg-red-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Pasif</div>
-                            <div class="text-2xl font-bold text-red-600">${stats.inactive}</div>
-                        </div>
-                    `;
-                }
-
-                displayHospitalTypes(hospitalTypesData);
-                document.getElementById('hospitaltypes-count').textContent = `Toplam ${hospitalTypesData.length} hastane türü`;
-            } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Yükleme hatası: ${err.message}</td></tr>`;
-                console.error('Error loading hospital types:', err);
-            }
-        }
-
-        // Display hospital types
-        function displayHospitalTypes(data) {
-            const tbody = document.getElementById('hospitaltypes-tbody');
-            tbody.innerHTML = data.map(type => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 text-sm font-medium">${type.displayName || ''}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">${type.slug || ''}</td>
-                    <td class="px-4 py-3 text-sm">${type.description || '-'}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 rounded text-xs font-medium ${type.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                            ${type.isActive ? 'Aktif' : 'Pasif'}
-                        </span>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // Filter hospital types
-        function filterHospitalTypes() {
-            const searchText = document.getElementById('search-hospitaltypes').value.toLowerCase();
-
-            const filtered = hospitalTypesData.filter(type => {
-                return (
-                    (type.displayName || '').toLowerCase().includes(searchText) ||
-                    (type.slug || '').toLowerCase().includes(searchText) ||
-                    (type.description || '').toLowerCase().includes(searchText)
-                );
-            });
-
-            displayHospitalTypes(filtered);
-            document.getElementById('hospitaltypes-count').textContent = `${filtered.length} / ${hospitalTypesData.length} hastane türü gösteriliyor`;
-        }
-
-        // Load hospital subtypes
-        async function loadHospitalSubtypes() {
-            const tbody = document.getElementById('hospitalsubtypes-tbody');
-            const statsDiv = document.getElementById('hospitalsubtypes-stats');
-
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">Yükleniyor...</td></tr>';
-            statsDiv.innerHTML = '';
-
-            try {
-                // Load hospital subtypes data
-                const response = await fetch(`${API_URL}/hospital-subtypes`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                hospitalSubtypesData = await response.json();
-
-                // Load stats
-                const statsResponse = await fetch(`${API_URL}/hospital-subtypes/stats`);
-                if (statsResponse.ok) {
-                    const stats = await statsResponse.json();
-
-                    // Display stats
-                    statsDiv.innerHTML = `
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Toplam</div>
-                            <div class="text-2xl font-bold text-blue-600">${stats.total}</div>
-                        </div>
-                        <div class="bg-green-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Aktif</div>
-                            <div class="text-2xl font-bold text-green-600">${stats.active}</div>
-                        </div>
-                        <div class="bg-red-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Pasif</div>
-                            <div class="text-2xl font-bold text-red-600">${stats.inactive}</div>
-                        </div>
-                        <div class="bg-purple-50 p-4 rounded-lg">
-                            <div class="text-sm font-medium text-gray-600">Kamu Alt Türleri</div>
-                            <div class="text-2xl font-bold text-purple-600">${stats.byParentType.kamu || 0}</div>
-                        </div>
-                    `;
-                }
-
-                displayHospitalSubtypes(hospitalSubtypesData);
-                document.getElementById('hospitalsubtypes-count').textContent = `Toplam ${hospitalSubtypesData.length} hastane alt türü`;
-            } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-500">Yükleme hatası: ${err.message}</td></tr>`;
-                console.error('Error loading hospital subtypes:', err);
-            }
-        }
-
-        // Display hospital subtypes
-        function displayHospitalSubtypes(data) {
-            const tbody = document.getElementById('hospitalsubtypes-tbody');
-            tbody.innerHTML = data.map(subtype => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 text-sm font-medium">${subtype.displayName || ''}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">${subtype.slug || ''}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 rounded text-xs font-medium ${subtype.parentType?.name === 'kamu' ? 'bg-green-100 text-green-800' : (subtype.parentType?.name === 'özel' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')}">
-                            ${subtype.parentType?.displayName || '-'}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm">${subtype.description || '-'}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="px-2 py-1 rounded text-xs font-medium ${subtype.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                            ${subtype.isActive ? 'Aktif' : 'Pasif'}
-                        </span>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // Filter hospital subtypes
-        function filterHospitalSubtypes() {
-            const searchText = document.getElementById('search-hospitalsubtypes').value.toLowerCase();
-
-            const filtered = hospitalSubtypesData.filter(subtype => {
-                return (
-                    (subtype.displayName || '').toLowerCase().includes(searchText) ||
-                    (subtype.slug || '').toLowerCase().includes(searchText) ||
-                    (subtype.parentType?.name || '').toLowerCase().includes(searchText) ||
-                    (subtype.parentType?.displayName || '').toLowerCase().includes(searchText) ||
-                    (subtype.description || '').toLowerCase().includes(searchText)
-                );
-            });
-
-            displayHospitalSubtypes(filtered);
-            document.getElementById('hospitalsubtypes-count').textContent = `${filtered.length} / ${hospitalSubtypesData.length} hastane alt türü gösteriliyor`;
-        }
-
-        // Sort table
-        function sortTable(tableType, column) {
-            let data;
-            if (tableType === 'contacts') {
-                data = contactsData;
-            } else if (tableType === 'rawdata') {
-                data = rawDataData;
-            } else if (tableType === 'references') {
-                data = referencesData;
-            } else if (tableType === 'jobtitles') {
-                data = jobTitlesData;
-            } else if (tableType === 'hospitaltypes') {
-                data = hospitalTypesData;
-            } else if (tableType === 'hospitalsubtypes') {
-                data = hospitalSubtypesData;
-            }
-
-            const headers = document.querySelectorAll(`#${tableType}-table thead th.sortable`);
-
-            // Remove sort classes from all headers
-            headers.forEach(h => {
-                h.classList.remove('sort-asc', 'sort-desc');
-                h.classList.add('sort-icon');
-            });
-
-            // Determine sort direction
-            if (sortState.table === tableType && sortState.column === column) {
-                sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                sortState = { table: tableType, column, direction: 'asc' };
-            }
-
-            // Add sort class to current header
-            const currentHeader = headers[column];
-            currentHeader.classList.remove('sort-icon');
-            currentHeader.classList.add(sortState.direction === 'asc' ? 'sort-asc' : 'sort-desc');
-
-            // Sort data - special handling for contacts with nested hospital objects
-            if (tableType === 'contacts') {
-                data.sort((a, b) => {
-                    let aVal, bVal;
-
-                    if (column === 0) aVal = a.trelloBaslik || '';
-                    else if (column === 1) aVal = a.hospital?.hastaneAdi || '';
-                    else if (column === 2) aVal = a.hospital?.il || '';
-                    else if (column === 3) aVal = a.hospital?.type?.displayName || '';
-                    else if (column === 4) aVal = a.hospital?.subtype?.displayName || '';
-
-                    if (column === 0) bVal = b.trelloBaslik || '';
-                    else if (column === 1) bVal = b.hospital?.hastaneAdi || '';
-                    else if (column === 2) bVal = b.hospital?.il || '';
-                    else if (column === 3) bVal = b.hospital?.type?.displayName || '';
-                    else if (column === 4) bVal = b.hospital?.subtype?.displayName || '';
-
-                    const comparison = aVal.localeCompare(bVal, 'tr', { sensitivity: 'base' });
-                    return sortState.direction === 'asc' ? comparison : -comparison;
-                });
-
-                displayContacts(data);
+            // If search is empty and unused checkbox changed, reload from API
+            if (!searchText) {
+                await loadHospitalsForModal();
                 return;
             }
 
-            // Sort data - special handling for references with nested objects
-            if (tableType === 'references') {
-                data.sort((a, b) => {
-                    let aVal, bVal;
+            // Filter the current data locally
+            const filtered = modalHospitals.filter(h => {
+                const cityName = h.city?.name || h.il || '';
+                return h.hastaneAdi.toLowerCase().includes(searchText) ||
+                       cityName.toLowerCase().includes(searchText);
+            });
 
-                    if (column === 0) aVal = a.hastaneAdi || '';
-                    else if (column === 1) aVal = a.il || '';
-                    else if (column === 2) aVal = a.type?.displayName || '';
-                    else if (column === 3) aVal = a.subtype?.displayName || '';
+            displayModalHospitals(filtered);
+        }
 
-                    if (column === 0) bVal = b.hastaneAdi || '';
-                    else if (column === 1) bVal = b.il || '';
-                    else if (column === 2) bVal = b.type?.displayName || '';
-                    else if (column === 3) bVal = b.subtype?.displayName || '';
+        // Display modal hospitals
+        function displayModalHospitals(hospitals) {
+            const list = document.getElementById('modal-hospitals-list');
+            const noResults = document.getElementById('modal-no-results');
 
-                    const comparison = aVal.localeCompare(bVal, 'tr', { sensitivity: 'base' });
-                    return sortState.direction === 'asc' ? comparison : -comparison;
-                });
-
-                displayReferences(data);
+            if (hospitals.length === 0) {
+                list.innerHTML = '';
+                noResults.style.display = 'block';
                 return;
             }
 
-            // Standard sorting for other tables
-            let fields;
-            if (tableType === 'rawdata') {
-                fields = ['title', 'description', 'listName'];
-            } else if (tableType === 'jobtitles') {
-                fields = ['displayName', 'slug', 'description', 'isActive'];
-            } else if (tableType === 'hospitaltypes') {
-                fields = ['displayName', 'slug', 'description', 'isActive'];
-            } else if (tableType === 'hospitalsubtypes') {
-                fields = ['displayName', 'slug', 'parentType', 'description', 'isActive'];
-            }
+            noResults.style.display = 'none';
+            list.innerHTML = hospitals.map(h => {
+                const cityDisplay = h.city?.name || h.il || '-';
+                const plateCode = h.city?.plateCode ? ` (${h.city.plateCode})` : '';
 
-            const field = fields[column];
+                return `
+                    <div class="hospital-item p-4 border rounded-lg" onclick="selectHospital('${h.id}', '${escapeHtml(h.hastaneAdi)}', '${escapeHtml(cityDisplay)}')">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900">${h.hastaneAdi}</h4>
+                                <p class="text-sm text-gray-600 mt-1">${cityDisplay}${plateCode}</p>
+                            </div>
+                            <div class="flex flex-col gap-1 items-end">
+                                <span class="px-2 py-1 rounded text-xs font-medium ${h.type?.name === 'kamu' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}">
+                                    ${h.type?.displayName || '-'}
+                                </span>
+                                <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                    ${h.subtype?.displayName || '-'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
 
-            data.sort((a, b) => {
-                const aVal = (a[field] || '');
-                const bVal = (b[field] || '');
+        // Select hospital
+        function selectHospital(hospitalId, hospitalName, hospitalCity) {
+            selectedHospital = { id: hospitalId, name: hospitalName, city: hospitalCity };
 
-                // Handle boolean values for isActive
-                if (field === 'isActive') {
-                    const comparison = (aVal === bVal) ? 0 : aVal ? -1 : 1;
-                    return sortState.direction === 'asc' ? comparison : -comparison;
+            // Update UI
+            document.querySelectorAll('.hospital-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+
+            document.getElementById('selected-hospital-name').textContent = `${hospitalName} (${hospitalCity})`;
+            document.getElementById('confirm-matching-btn').disabled = false;
+        }
+
+        // FEATURE 3: Confirm matching with auto-refresh support
+        async function confirmMatching() {
+            if (!selectedHospital || !currentTrelloMatch) return;
+
+            const confirmBtn = document.getElementById('confirm-matching-btn');
+            const originalText = confirmBtn.textContent;
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Kaydediliyor...';
+
+            try {
+                const response = await fetch(`${API_URL}/contacts/${currentTrelloMatch.id}/hospital`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        hospitalId: selectedHospital.id
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Kaydetme hatasi');
                 }
 
-                // Use Turkish locale for proper sorting of Turkish characters (Ş, Ğ, İ, Ö, Ü, Ç)
-                const comparison = aVal.toString().localeCompare(bVal.toString(), 'tr', { sensitivity: 'base' });
+                // Success!
+                closeMatchingModal();
 
-                if (sortState.direction === 'asc') {
-                    return comparison;
+                // Show success message
+                showNotification('Basarili! Hastane eslestirildi.', 'success');
+
+                // Reload trello matches
+                await loadTrelloMatches();
+
+                // FEATURE 3: Auto-refresh hospitals tab if unmatched filter is active
+                if (showUnmatchedHospitals) {
+                    await loadReferences();
+                }
+            } catch (err) {
+                console.error('Error confirming match:', err);
+                showNotification('Hata: ' + err.message, 'error');
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = originalText;
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.3s';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Open bulk matching modal
+        // Bulk Matching Modal Variables
+        let bulkMatchingData = [];
+        let bulkMatchingFilteredData = [];
+
+        async function openBulkMatchingModal() {
+            const modal = document.getElementById('bulkMatchingModal');
+            const loading = document.getElementById('bulkMatching-loading');
+            const error = document.getElementById('bulkMatching-error');
+            const empty = document.getElementById('bulkMatching-empty');
+            const content = document.getElementById('bulkMatching-content');
+
+            // Show modal and loading
+            modal.classList.add('show');
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            empty.style.display = 'none';
+            content.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/hospital-references?unused=true`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                bulkMatchingData = await response.json();
+
+                if (bulkMatchingData.length === 0) {
+                    empty.style.display = 'block';
                 } else {
-                    return -comparison;
+                    bulkMatchingFilteredData = bulkMatchingData;
+                    displayBulkMatching(bulkMatchingData);
+                    content.style.display = 'block';
+                    document.getElementById('bulkMatching-count').textContent =
+                        `Toplam ${bulkMatchingData.length} eşleştirilmemiş hastane`;
                 }
+            } catch (err) {
+                error.textContent = 'Hata: ' + err.message;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function closeBulkMatchingModal() {
+            document.getElementById('bulkMatchingModal').classList.remove('show');
+        }
+
+        function displayBulkMatching(data) {
+            const tbody = document.getElementById('bulkMatching-tbody');
+            tbody.innerHTML = data.map(hospital => {
+                // Display city information - prioritize city object, fallback to il field
+                const cityDisplay = hospital.city?.name || hospital.il || '-';
+                const plateCode = hospital.city?.plateCode ? ` (${hospital.city.plateCode})` : '';
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-medium">${hospital.hastaneAdi}</td>
+                        <td class="px-4 py-3 text-sm">${cityDisplay}${plateCode}</td>
+                        <td class="px-4 py-3 text-sm">
+                            <span class="px-2 py-1 rounded text-xs font-medium ${
+                                hospital.type.name === 'kamu' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
+                            }">
+                                ${hospital.type.displayName}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">${hospital.subtype.displayName}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterBulkMatching() {
+            const searchText = document.getElementById('search-bulkmatching').value.toLowerCase();
+
+            bulkMatchingFilteredData = bulkMatchingData.filter(hospital => {
+                const cityName = hospital.city?.name || hospital.il || '';
+                return (hospital.hastaneAdi || '').toLowerCase().includes(searchText) ||
+                       cityName.toLowerCase().includes(searchText);
             });
+
+            displayBulkMatching(bulkMatchingFilteredData);
+            document.getElementById('bulkMatching-count').textContent =
+                `${bulkMatchingFilteredData.length} / ${bulkMatchingData.length} hastane gösteriliyor`;
+        }
+
+        // Table Sorting System with Turkish Language Support
+        function sortTable(tableType, column) {
+            const state = sortState[tableType];
+
+            // Toggle direction if clicking same column, else reset to ascending
+            if (state.column === column) {
+                state.direction = state.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                state.column = column;
+                state.direction = 'asc';
+            }
+
+            // Get data and column config
+            let data, displayFn, columnConfig;
+
+            switch(tableType) {
+                case 'trelloMatches':
+                    data = trelloMatchesData;
+                    displayFn = displayTrelloMatches;
+                    columnConfig = [
+                        { key: 'trelloBaslik', type: 'string' },
+                        { key: 'hospital.hastaneAdi', type: 'string', nested: true },
+                        { key: 'hospital.city.name', type: 'string', nested: true, fallback: 'hospital.il' },
+                        { key: 'hospital.type.displayName', type: 'string', nested: true },
+                        { key: 'hospital.subtype.displayName', type: 'string', nested: true }
+                    ];
+                    break;
+                case 'references':
+                    data = referencesData;
+                    displayFn = displayReferences;
+                    columnConfig = [
+                        { key: 'hastaneAdi', type: 'string' },
+                        { key: 'city.name', type: 'string', nested: true, fallback: 'il' },
+                        { key: 'type.displayName', type: 'string', nested: true },
+                        { key: 'subtype.displayName', type: 'string', nested: true }
+                    ];
+                    break;
+                case 'rawdata':
+                    data = rawDataData;
+                    displayFn = displayRawData;
+                    columnConfig = [
+                        { key: 'title', type: 'string' },
+                        { key: 'description', type: 'string' },
+                        { key: 'createdAt', type: 'date' },
+                        { key: 'updatedAt', type: 'date' }
+                    ];
+                    break;
+                case 'jobtitles':
+                    data = jobTitlesData;
+                    displayFn = displayJobTitles;
+                    columnConfig = [
+                        { key: 'id', type: 'string' },
+                        { key: 'title', type: 'string' },
+                        { key: 'displayName', type: 'string' },
+                        { key: 'createdAt', type: 'date' }
+                    ];
+                    break;
+                case 'hospitaltypes':
+                    data = hospitalTypesData;
+                    displayFn = displayHospitalTypes;
+                    columnConfig = [
+                        { key: 'id', type: 'string' },
+                        { key: 'name', type: 'string' },
+                        { key: 'displayName', type: 'string' },
+                        { key: 'createdAt', type: 'date' }
+                    ];
+                    break;
+                case 'hospitalsubtypes':
+                    data = hospitalSubtypesData;
+                    displayFn = displayHospitalSubtypes;
+                    columnConfig = [
+                        { key: 'id', type: 'string' },
+                        { key: 'name', type: 'string' },
+                        { key: 'displayName', type: 'string' },
+                        { key: 'parentType.displayName', type: 'string', nested: true },
+                        { key: 'createdAt', type: 'date' }
+                    ];
+                    break;
+                case 'contactPersons':
+                    data = contactPersonsData;
+                    displayFn = displayContactPersons;
+                    columnConfig = [
+                        { key: 'firstName', type: 'string' },
+                        { key: 'lastName', type: 'string' },
+                        { key: 'phone', type: 'string' },
+                        { key: 'email', type: 'string' },
+                        { key: 'hospital.hastaneAdi', type: 'string', nested: true },
+                        { key: 'jobTitle.displayName', type: 'string', nested: true }
+                    ];
+                    break;
+                default:
+                    console.error('Unknown table type:', tableType);
+                    return;
+            }
+
+            // Get column configuration
+            const config = columnConfig[column];
+            if (!config) {
+                console.error('Invalid column index:', column);
+                return;
+            }
+
+            // Sort the data
+            const sortedData = [...data].sort((a, b) => {
+                let aVal, bVal;
+
+                // Get values (handle nested properties)
+                if (config.nested) {
+                    const keys = config.key.split('.');
+                    aVal = keys.reduce((obj, key) => obj?.[key], a);
+                    bVal = keys.reduce((obj, key) => obj?.[key], b);
+
+                    // Use fallback if primary value is null
+                    if (config.fallback && (aVal == null || bVal == null)) {
+                        const fallbackKeys = config.fallback.split('.');
+                        if (aVal == null) aVal = fallbackKeys.reduce((obj, key) => obj?.[key], a);
+                        if (bVal == null) bVal = fallbackKeys.reduce((obj, key) => obj?.[key], b);
+                    }
+                } else {
+                    aVal = a[config.key];
+                    bVal = b[config.key];
+                }
+
+                // Handle null/undefined
+                if (aVal == null && bVal == null) return 0;
+                if (aVal == null) return 1;
+                if (bVal == null) return -1;
+
+                // Compare based on type
+                let result;
+                if (config.type === 'date') {
+                    result = new Date(aVal) - new Date(bVal);
+                } else {
+                    // String comparison with Turkish locale
+                    result = String(aVal).localeCompare(String(bVal), 'tr', {
+                        sensitivity: 'base',
+                        numeric: true
+                    });
+                }
+
+                // Apply direction
+                return state.direction === 'asc' ? result : -result;
+            });
+
+            // Update visual indicators
+            updateSortIndicators(tableType, column, state.direction);
 
             // Display sorted data
-            if (tableType === 'rawdata') {
-                displayRawData(data);
-            } else if (tableType === 'jobtitles') {
-                displayJobTitles(data);
-            } else if (tableType === 'hospitaltypes') {
-                displayHospitalTypes(data);
-            } else if (tableType === 'hospitalsubtypes') {
-                displayHospitalSubtypes(data);
+            displayFn(sortedData);
+        }
+
+        function updateSortIndicators(tableType, column, direction) {
+            // Get all headers for this table
+            const tableId = `${tableType}-table`;
+            const table = document.getElementById(tableId);
+            if (!table) return;
+
+            const headers = table.querySelectorAll('thead th.sortable');
+
+            // Remove all sort classes
+            headers.forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                th.classList.add('sort-icon');
+            });
+
+            // Add appropriate class to clicked column
+            if (headers[column]) {
+                headers[column].classList.remove('sort-icon');
+                headers[column].classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
+            }
+        }
+
+        // Add New Hospital Modal Functions
+        async function openAddHospitalModal() {
+            try {
+                // Load hospital types
+                const typesResponse = await fetch(`${API_URL}/hospital-types`);
+                if (!typesResponse.ok) throw new Error('Hastane turleri yuklenemedi');
+
+                hospitalTypesForModal = await typesResponse.json();
+
+                const typeSelect = document.getElementById('newHospitalType');
+                typeSelect.innerHTML = '<option value="">Tur secin...</option>' +
+                    hospitalTypesForModal.map(type =>
+                        `<option value="${type.id}">${type.displayName}</option>`
+                    ).join('');
+
+                // Load cities
+                const citiesResponse = await fetch(`${API_URL}/cities`);
+                if (!citiesResponse.ok) throw new Error('Sehirler yuklenemedi');
+
+                citiesData = await citiesResponse.json();
+
+                // Sort cities alphabetically by name using Turkish locale
+                const sortedCities = [...citiesData].sort((a, b) =>
+                    a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' })
+                );
+
+                const citySelect = document.getElementById('newHospitalCity');
+                citySelect.innerHTML = '<option value="">İl seçin...</option>' +
+                    sortedCities.map(city =>
+                        `<option value="${city.id}">${city.name}${city.plateCode ? ' (' + city.plateCode + ')' : ''}</option>`
+                    ).join('');
+
+                // Reset form
+                document.getElementById('addHospitalForm').reset();
+                document.getElementById('newHospitalSubtype').innerHTML = '<option value="">Once tur secin...</option>';
+                document.getElementById('addHospitalError').style.display = 'none';
+
+                // Show modal
+                document.getElementById('addHospitalModal').classList.add('show');
+            } catch (err) {
+                showNotification('Hata: ' + err.message, 'error');
+            }
+        }
+
+        function closeAddHospitalModal() {
+            document.getElementById('addHospitalModal').classList.remove('show');
+        }
+
+        async function loadSubtypesForNewHospital() {
+            const typeId = document.getElementById('newHospitalType').value;
+            const subtypeSelect = document.getElementById('newHospitalSubtype');
+
+            if (!typeId) {
+                subtypeSelect.innerHTML = '<option value="">Once tur secin...</option>';
+                return;
+            }
+
+            try {
+                // Find selected type's slug
+                const selectedType = hospitalTypesForModal.find(t => t.id === typeId);
+                if (!selectedType) return;
+
+                const response = await fetch(`${API_URL}/hospital-subtypes/by-parent/${selectedType.slug}`);
+                if (!response.ok) throw new Error('Alt turler yuklenemedi');
+
+                hospitalSubtypesForModal = await response.json();
+
+                subtypeSelect.innerHTML = '<option value="">Alt tur secin...</option>' +
+                    hospitalSubtypesForModal.map(subtype =>
+                        `<option value="${subtype.id}">${subtype.displayName}</option>`
+                    ).join('');
+            } catch (err) {
+                console.error('Error loading subtypes:', err);
+                subtypeSelect.innerHTML = '<option value="">Yukleme hatasi</option>';
+            }
+        }
+
+        // CRITICAL FIX: Refresh hospital list in matching modal after adding new hospital
+        async function submitNewHospital(event) {
+            event.preventDefault();
+
+            const errorDiv = document.getElementById('addHospitalError');
+            errorDiv.style.display = 'none';
+
+            const data = {
+                hastaneAdi: document.getElementById('newHospitalName').value.trim(),
+                cityId: document.getElementById('newHospitalCity').value,
+                typeId: document.getElementById('newHospitalType').value,
+                subtypeId: document.getElementById('newHospitalSubtype').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/hospital-references`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Kayit basarisiz');
+                }
+
+                const newHospital = await response.json();
+
+                // Close add hospital modal
+                closeAddHospitalModal();
+
+                // Reload references list to show new hospital
+                await loadReferences();
+
+                // CRITICAL FIX: Check if hospital matching modal is open and refresh its data
+                const matchingModal = document.getElementById('hospital-matching-modal');
+                if (matchingModal && matchingModal.classList.contains('show')) {
+                    // Preserve the current search query
+                    const currentSearchQuery = document.getElementById('modal-search').value;
+
+                    // Reload hospital data from API to include the newly added hospital
+                    await loadHospitalsForModal();
+
+                    // Restore the search query
+                    document.getElementById('modal-search').value = currentSearchQuery;
+
+                    // Re-apply the search filter if there was a query
+                    if (currentSearchQuery.trim()) {
+                        await searchHospitalsInModal();
+                    }
+                }
+
+                // If bulk matching modal is open, refresh it too
+                const bulkModal = document.getElementById('bulkMatchingModal');
+                if (bulkModal && bulkModal.classList.contains('show')) {
+                    // Reload bulk matching data
+                    const response = await fetch(`${API_URL}/hospital-references?unused=true`);
+                    if (response.ok) {
+                        bulkMatchingData = await response.json();
+                        bulkMatchingFilteredData = bulkMatchingData;
+                        displayBulkMatching(bulkMatchingData);
+                        document.getElementById('bulkMatching-count').textContent =
+                            `Toplam ${bulkMatchingData.length} eşleştirilmemiş hastane`;
+                    }
+                }
+
+                // Show success notification
+                showNotification(`${newHospital.hastaneAdi} basariyla eklendi!`, 'success');
+
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
             }
         }
 
         // Initial load
         window.onload = () => {
-            loadContacts();
+            loadTrelloMatches();
         };
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeMatchingModal();
+                closeAddHospitalModal();
+                closeContactPersonModal();
+            }
+        });
     </script>
 </body>
 </html>

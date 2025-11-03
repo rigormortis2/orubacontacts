@@ -40,7 +40,7 @@ async function importRawData(): Promise<ImportStats> {
     console.log('============================================================\n');
 
     // Excel dosyasını oku
-    const excelPath = path.resolve('/app/oruba_contacts_raw_data.xlsx');
+    const excelPath = path.resolve(__dirname, '../../oruba_contacts_raw_data.xlsx');
     console.log('📁 Excel dosyası okunuyor:', excelPath);
 
     const workbook = XLSX.readFile(excelPath);

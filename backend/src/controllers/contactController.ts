@@ -7,12 +7,13 @@ const prisma = new PrismaClient();
 // Get all contacts with hospital relations
 export const getAllContacts = async (req: Request, res: Response) => {
   try {
-    const contacts = await prisma.contact.findMany({
+    const contacts = await prisma.trelloMatches.findMany({
       include: {
         hospital: {
           include: {
             type: true,
             subtype: true,
+            city: true,
           },
         },
       },
@@ -30,17 +31,17 @@ export const getAllContacts = async (req: Request, res: Response) => {
 // Get contact statistics
 export const getContactStats = async (req: Request, res: Response) => {
   try {
-    const total = await prisma.contact.count();
+    const total = await prisma.trelloMatches.count();
 
     // Hospital ilişkisi olan/olmayan kayıt sayısı
-    const withHospital = await prisma.contact.count({
+    const withHospital = await prisma.trelloMatches.count({
       where: { hospitalId: { not: null } },
     });
 
     const withoutHospital = total - withHospital;
 
     // Type dağılımı (hospital ilişkisi üzerinden)
-    const kamuCount = await prisma.contact.count({
+    const kamuCount = await prisma.trelloMatches.count({
       where: {
         hospital: {
           type: {
@@ -50,7 +51,7 @@ export const getContactStats = async (req: Request, res: Response) => {
       },
     });
 
-    const ozelCount = await prisma.contact.count({
+    const ozelCount = await prisma.trelloMatches.count({
       where: {
         hospital: {
           type: {
@@ -79,13 +80,14 @@ export const getContactStats = async (req: Request, res: Response) => {
 export const getContactById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const contact = await prisma.contact.findUnique({
+    const contact = await prisma.trelloMatches.findUnique({
       where: { id },
       include: {
         hospital: {
           include: {
             type: true,
             subtype: true,
+            city: true,
           },
         },
       },
@@ -110,13 +112,14 @@ export const createContact = async (req: Request, res: Response) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const contact = await prisma.contact.create({
+    const contact = await prisma.trelloMatches.create({
       data: req.body,
       include: {
         hospital: {
           include: {
             type: true,
             subtype: true,
+            city: true,
           },
         },
       },
@@ -141,7 +144,7 @@ export const updateContact = async (req: Request, res: Response) => {
     }
 
     const { id } = req.params;
-    const contact = await prisma.contact.update({
+    const contact = await prisma.trelloMatches.update({
       where: { id },
       data: req.body,
       include: {
@@ -149,6 +152,7 @@ export const updateContact = async (req: Request, res: Response) => {
           include: {
             type: true,
             subtype: true,
+            city: true,
           },
         },
       },
@@ -167,11 +171,55 @@ export const updateContact = async (req: Request, res: Response) => {
   }
 };
 
+// Update contact hospital (manual matching)
+export const updateContactHospital = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { hospitalId } = req.body;
+
+    if (!hospitalId) {
+      return res.status(400).json({ error: 'Hospital ID gereklidir' });
+    }
+
+    // Verify hospital exists
+    const hospital = await prisma.hospitalReference.findUnique({
+      where: { id: hospitalId },
+    });
+
+    if (!hospital) {
+      return res.status(404).json({ error: 'Hastane bulunamadı' });
+    }
+
+    // Update contact
+    const contact = await prisma.trelloMatches.update({
+      where: { id },
+      data: { hospitalId },
+      include: {
+        hospital: {
+          include: {
+            type: true,
+            subtype: true,
+            city: true,
+          },
+        },
+      },
+    });
+
+    res.json(contact);
+  } catch (error: any) {
+    console.error('Error updating contact hospital:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Contact bulunamadı' });
+    }
+    res.status(500).json({ error: 'Hastane eşleştirme güncellenirken hata oluştu' });
+  }
+};
+
 // Delete contact
 export const deleteContact = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    await prisma.contact.delete({
+    await prisma.trelloMatches.delete({
       where: { id },
     });
 

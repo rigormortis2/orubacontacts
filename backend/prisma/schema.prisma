@@ -10,10 +10,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Contact {
-  id           String  @id @default(uuid())
+model TrelloMatches {
+  id           String  @id @default(uuid()) @db.Uuid
   trelloBaslik String  @unique @map("trello_baslik") // Original Trello card title
-  hospitalId   String? @map("hospital_id") @db.Uuid  // FK to hospitals (nullable until fuzzy matching)
+  hospitalId   String? @map("hospital_id") @db.Uuid // FK to hospitals (nullable until fuzzy matching)
 
   // Relation to hospitals reference table
   hospital HospitalReference? @relation(fields: [hospitalId], references: [id])
@@ -32,11 +32,11 @@ model Contact {
 
   @@index([hospitalId])
   @@index([trelloBaslik])
-  @@map("oruba_contacts")
+  @@map("trello_matches")
 }
 
 model RawData {
-  id          String  @id @default(uuid())
+  id          String  @id @default(uuid()) @db.Uuid
   title       String
   description String?
   listName    String  @map("list_name")
@@ -51,25 +51,28 @@ model RawData {
 
 // Referans tablosu - Wikipedia'dan çekilen resmi hastane listesi
 model HospitalReference {
-  id         String @id @default(uuid())
-  hastaneAdi String // Hastane adı
-  il         String // İl
-  typeId     String @map("type_id") // Foreign key to hospital_types
-  subtypeId  String @map("subtype_id") // Foreign key to hospital_subtypes
-  kaynak     String @default("Wikipedia") // Veri kaynağı
+  id         String  @id @default(uuid()) @db.Uuid
+  hastaneAdi String  // Hastane adı
+  il         String  // Required city name field
+  cityId     String? @map("city_id") @db.Uuid // Foreign key to cities
+  typeId     String  @map("type_id") @db.Uuid // Foreign key to hospital_types
+  subtypeId  String  @map("subtype_id") @db.Uuid // Foreign key to hospital_subtypes
+  kaynak     String  @default("Wikipedia") // Veri kaynağı
 
   // İlişkiler
+  city    City?           @relation(fields: [cityId], references: [id])
   type    HospitalType    @relation(fields: [typeId], references: [id])
   subtype HospitalSubtype @relation(fields: [subtypeId], references: [id])
 
   // Reverse relation to contacts (NEW)
-  contacts Contact[]
+  contacts       TrelloMatches[]
+  personContacts PersonContact[] // Reverse relation to person contacts
+  contactPersons Contact[]       // Reverse relation to new Contact model
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([hastaneAdi, il]) // Composite unique constraint
-  @@index([il])
+  @@index([cityId])
   @@index([typeId])
   @@index([subtypeId])
   @@map("hospitals")
@@ -77,12 +80,16 @@ model HospitalReference {
 
 // Job titles referans tablosu
 model JobTitle {
-  id          String  @id @default(uuid())
+  id          String  @id @default(uuid()) @db.Uuid
   title       String  @unique // Job title name (unique identifier)
   slug        String  @unique // URL-friendly version (doktor, satinalma, biyomedikal, other)
   displayName String  @map("display_name") // Turkish display name (Doktor, Satınalma, Biyomedikal, Diğer)
   description String? // Optional job description
   isActive    Boolean @default(true) @map("is_active") // Active status flag
+
+  // Reverse relation to person contacts
+  personContacts PersonContact[]
+  contactPersons Contact[]       // Reverse relation to new Contact model
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -94,7 +101,7 @@ model JobTitle {
 
 // Hospital types referans tablosu
 model HospitalType {
-  id          String  @id @default(uuid())
+  id          String  @id @default(uuid()) @db.Uuid
   name        String  @unique // Internal name (kamu, özel, muayenehane, other)
   slug        String  @unique // URL-friendly version
   displayName String  @map("display_name") // Display name (Kamu, Özel, Muayenehane, Diğer)
@@ -115,12 +122,12 @@ model HospitalType {
 
 // Hospital subtypes referans tablosu
 model HospitalSubtype {
-  id           String  @id @default(uuid())
+  id           String  @id @default(uuid()) @db.Uuid
   name         String  @unique // Subtype name (unique identifier)
   slug         String  @unique // URL-friendly version (devlet, egitim-arastirma, ilce, universite, sehir, diger-kamu, diger-ozel, diger-muayenehane, diger)
   displayName  String  @map("display_name") // Turkish display name (Devlet, Eğitim Araştırma, İlçe, Üniversite, Şehir, Diğer)
   description  String? // Optional subtype description
-  parentTypeId String? @map("parent_type_id") // Foreign key to hospital_types.id
+  parentTypeId String? @map("parent_type_id") @db.Uuid // Foreign key to hospital_types.id
   isActive     Boolean @default(true) @map("is_active") // Active status flag
 
   // İlişki: Her subtype bir hospital type'a ait olabilir
@@ -134,4 +141,77 @@ model HospitalSubtype {
   @@index([isActive])
   @@index([parentTypeId])
   @@map("hospital_subtypes")
+}
+
+// Person contacts table - Individual contacts with job titles and hospital associations
+model PersonContact {
+  id         String  @id @default(uuid()) @db.Uuid
+  firstName  String  @map("first_name") // First name (required)
+  lastName   String  @map("last_name") // Last name (required)
+  fullName   String? @map("full_name") // Full name (optional, auto-generated)
+  phone      String? // Phone number (optional)
+  email      String? // Email address (optional)
+  jobTitleId String? @map("job_title_id") @db.Uuid // FK to job_titles (optional)
+  hospitalId String? @map("hospital_id") @db.Uuid // FK to hospitals (optional)
+  isActive   Boolean @default(true) @map("is_active") // Active status flag
+
+  // Relations
+  jobTitle JobTitle?          @relation(fields: [jobTitleId], references: [id])
+  hospital HospitalReference? @relation(fields: [hospitalId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([jobTitleId])
+  @@index([hospitalId])
+  @@index([email])
+  @@index([isActive])
+  @@map("person_contacts")
+}
+
+// Cities reference table - Turkish provinces and special locations
+model City {
+  id        String  @id @default(uuid()) @db.Uuid
+  name      String  @unique // Official city name (e.g., "İstanbul", "Ankara")
+  slug      String  @unique // URL-friendly version (e.g., "istanbul", "ankara")
+  plateCode Int?    @map("plate_code") // License plate code (1-81, null for special entries)
+  region    String? // Geographic region (Marmara, Ege, Akdeniz, etc.)
+  isActive  Boolean @default(true) @map("is_active") // Active status flag
+
+  // Reverse relation
+  hospitals HospitalReference[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([plateCode])
+  @@index([isActive])
+  @@map("cities")
+}
+
+// NEW Contact model - Simple contact management system
+model Contact {
+  id         String  @id @default(uuid()) @db.Uuid
+  firstName  String  @map("first_name") // First name (required)
+  lastName   String  @map("last_name") // Last name (required)
+  phone      String? // Phone number (optional)
+  email      String? // Email address (optional)
+  notes      String? // Notes field, can be long text (optional)
+  jobTitleId String? @map("job_title_id") @db.Uuid // FK to job_titles (optional)
+  hospitalId String? @map("hospital_id") @db.Uuid // FK to hospitals (optional)
+
+  // Relations
+  jobTitle JobTitle?          @relation(fields: [jobTitleId], references: [id])
+  hospital HospitalReference? @relation(fields: [hospitalId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([jobTitleId])
+  @@index([hospitalId])
+  @@index([email])
+  @@index([firstName])
+  @@index([lastName])
+  @@map("contacts")
 }

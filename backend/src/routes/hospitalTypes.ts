@@ -31,7 +31,7 @@ router.get('/stats', async (req, res) => {
     const inactive = await prisma.hospitalType.count({ where: { isActive: false } });
 
     // Her bir hastane türü için contact kayıt sayılarını hesapla (hospital relation üzerinden)
-    const kamuCount = await prisma.contact.count({
+    const kamuCount = await prisma.trelloMatches.count({
       where: {
         hospital: {
           type: {
@@ -41,7 +41,7 @@ router.get('/stats', async (req, res) => {
       }
     });
 
-    const ozelCount = await prisma.contact.count({
+    const ozelCount = await prisma.trelloMatches.count({
       where: {
         hospital: {
           type: {
@@ -51,7 +51,7 @@ router.get('/stats', async (req, res) => {
       }
     });
 
-    const muayenehaneCount = await prisma.contact.count({
+    const muayenehaneCount = await prisma.trelloMatches.count({
       where: {
         hospital: {
           type: {

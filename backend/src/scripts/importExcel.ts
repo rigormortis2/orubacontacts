@@ -133,7 +133,7 @@ function validateContact(contact: ContactData, rowIndex: number): { valid: boole
  * Kontağı veritabanına ekler veya günceller
  */
 async function upsertContact(contact: ContactData): Promise<void> {
-  await prisma.contact.upsert({
+  await prisma.trelloMatches.upsert({
     where: {
       hastaneAdi: contact.hastaneAdi
     },
