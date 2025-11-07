@@ -1,0 +1,60 @@
+🚀 Starting comprehensive database backup...
+📁 Backup directory: /Users/fatihalkan/Documents/GitHub/orubacontacts/backups/20251107_125734
+
+
+📦 Backing up odoo_contacts...
+   ❌ Error backing up odoo_contacts: PrismaClientInitializationError: 
+Invalid `prisma.odooContact.findMany()` invocation in
+/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/src/scripts/createComprehensiveJsonBackup.ts:116:34
+
+  113 backupMetadata.push(
+  114   await backupTable(
+  115     'odoo_contacts',
+→ 116     () => prisma.odooContact.findMany(
+User `postgres` was denied access on the database `orubacontacts.public`
+    at $n.handleRequestError (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:121:7615)
+    at $n.handleAndLogRequestError (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async backupTable (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/src/scripts/createComprehensiveJsonBackup.ts:57:21)
+    at async createBackups (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/src/scripts/createComprehensiveJsonBackup.ts:114:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+
+❌ Backup failed: PrismaClientInitializationError: 
+Invalid `prisma.odooContact.findMany()` invocation in
+/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/src/scripts/createComprehensiveJsonBackup.ts:116:34
+
+  113 backupMetadata.push(
+  114   await backupTable(
+  115     'odoo_contacts',
+→ 116     () => prisma.odooContact.findMany(
+User `postgres` was denied access on the database `orubacontacts.public`
+    at $n.handleRequestError (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:121:7615)
+    at $n.handleAndLogRequestError (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async backupTable (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/src/scripts/createComprehensiveJsonBackup.ts:57:21)
+    at async createBackups (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/src/scripts/createComprehensiveJsonBackup.ts:114:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+💥 Backup process failed: PrismaClientInitializationError: 
+Invalid `prisma.odooContact.findMany()` invocation in
+/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/src/scripts/createComprehensiveJsonBackup.ts:116:34
+
+  113 backupMetadata.push(
+  114   await backupTable(
+  115     'odoo_contacts',
+→ 116     () => prisma.odooContact.findMany(
+User `postgres` was denied access on the database `orubacontacts.public`
+    at $n.handleRequestError (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:121:7615)
+    at $n.handleAndLogRequestError (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:121:6623)
+    at $n.request (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:121:6307)
+    at async l (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async backupTable (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/src/scripts/createComprehensiveJsonBackup.ts:57:21)
+    at async createBackups (/Users/fatihalkan/Documents/GitHub/orubacontacts/backend/src/scripts/createComprehensiveJsonBackup.ts:114:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
