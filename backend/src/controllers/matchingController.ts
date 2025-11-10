@@ -125,59 +125,85 @@ export const getNextUnmatched = async (req: Request, res: Response) => {
     });
 
     // Find an unmatched record that's not locked
-    const unmatchedRecord = await prisma.rawData.findFirst({
-      where: {
-        isFullyMatched: false,
-        matchingInProgressBy: null,
-      },
-      include: {
-        phones: {
-          where: { isMatched: false },
-          orderBy: { phoneNumber: 'asc' },
-        },
-        emails: {
-          where: { isMatched: false },
-          orderBy: { emailAddress: 'asc' },
-        },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
+    // Priority: 1) Ankara hospitals, 2) Istanbul hospitals, 3) Others
+    const unmatchedRecord = await prisma.$queryRaw<Array<any>>`
+      SELECT
+        td.id,
+        td.title,
+        td.description,
+        td.list_name as "listName",
+        td.short_url as "shortUrl",
+        td.full_url as "fullUrl",
+        td.is_fully_matched as "isFullyMatched",
+        td.matching_in_progress_by as "matchingInProgressBy",
+        td.matching_locked_at as "matchingLockedAt",
+        td."createdAt",
+        td."updatedAt",
+        CASE
+          WHEN c.name = 'Ankara' THEN 1
+          WHEN c.name = 'İstanbul' THEN 2
+          ELSE 3
+        END as priority
+      FROM trello_raw_datas td
+      LEFT JOIN trello_matches tm ON td.title = tm.trello_baslik
+      LEFT JOIN hospitals h ON tm.hospital_id = h.id
+      LEFT JOIN cities c ON h.city_id = c.id
+      WHERE td.is_fully_matched = false
+        AND td.matching_in_progress_by IS NULL
+      ORDER BY
+        CASE
+          WHEN c.name = 'Ankara' THEN 1
+          WHEN c.name = 'İstanbul' THEN 2
+          ELSE 3
+        END,
+        td."createdAt" ASC
+      LIMIT 1
+    `;
 
-    if (!unmatchedRecord) {
+    if (!unmatchedRecord || unmatchedRecord.length === 0) {
       return res.status(404).json({
         message: 'No unmatched records found',
         allComplete: true
       });
     }
 
+    const record = unmatchedRecord[0];
+
+    // Fetch phones and emails separately
+    const phones = await prisma.phone.findMany({
+      where: {
+        rawDataId: record.id,
+        isMatched: false,
+      },
+      orderBy: { phoneNumber: 'asc' },
+    });
+
+    const emails = await prisma.email.findMany({
+      where: {
+        rawDataId: record.id,
+        isMatched: false,
+      },
+      orderBy: { emailAddress: 'asc' },
+    });
+
     // Lock the record for this user
-    const lockedRecord = await prisma.rawData.update({
-      where: { id: unmatchedRecord.id },
+    await prisma.rawData.update({
+      where: { id: record.id },
       data: {
         matchingInProgressBy: username,
         matchingLockedAt: new Date(),
       },
-      include: {
-        phones: {
-          where: { isMatched: false },
-          orderBy: { phoneNumber: 'asc' },
-        },
-        emails: {
-          where: { isMatched: false },
-          orderBy: { emailAddress: 'asc' },
-        },
-      },
     });
 
     return res.json({
-      id: lockedRecord.id, // Changed from rawDataId to id to match frontend expectations
-      rawDataId: lockedRecord.id, // Keep for backward compatibility
-      title: lockedRecord.title,
-      description: lockedRecord.description,
-      listName: lockedRecord.listName,
-      phones: lockedRecord.phones,
-      emails: lockedRecord.emails,
-      totalUnmatched: lockedRecord.phones.length + lockedRecord.emails.length,
+      id: record.id,
+      rawDataId: record.id,
+      title: record.title,
+      description: record.description,
+      listName: record.listName,
+      phones: phones,
+      emails: emails,
+      totalUnmatched: phones.length + emails.length,
     });
   } catch (error) {
     console.error('Error getting next unmatched record:', error);
