@@ -53,8 +53,8 @@ server {
 }
 EOF
 
-# Copy static HTML file
-COPY index.html /usr/share/nginx/html/
+# Copy all static files
+COPY . /usr/share/nginx/html/
 
 # Install wget for healthcheck
 RUN apk add --no-cache wget

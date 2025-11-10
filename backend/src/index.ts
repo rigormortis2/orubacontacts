@@ -10,6 +10,10 @@ import hospitalSubtypesRoutes from './routes/hospitalSubtypes';
 import personContactsRoutes from './routes/personContacts';
 import citiesRoutes from './routes/cities';
 import contactPersonsRoutes from './routes/contactPersons';
+import odooContactsRoutes from './routes/odooContacts';
+import phonesRoutes from './routes/phones';
+import emailsRoutes from './routes/emails';
+import matchingRoutes from './routes/matching';
 
 dotenv.config();
 
@@ -30,6 +34,10 @@ app.use('/api/hospital-subtypes', hospitalSubtypesRoutes);
 app.use('/api/person-contacts', personContactsRoutes); // PersonContact (existing)
 app.use('/api/cities', citiesRoutes);
 app.use('/api/contact-persons', contactPersonsRoutes); // NEW Contact model
+app.use('/api/odoo-contacts', odooContactsRoutes); // Odoo contacts
+app.use('/api/phones', phonesRoutes); // Phone numbers extracted from raw data
+app.use('/api/emails', emailsRoutes); // Email addresses extracted from raw data
+app.use('/api/matching', matchingRoutes); // Manual matching interface
 
 // Health check
 app.get('/health', (req, res) => {

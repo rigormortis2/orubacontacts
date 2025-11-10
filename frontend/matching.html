@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Matching - Oruba Contacts</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4ade80;
+            transition: width 0.5s ease-out;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .welcome-screen {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .welcome-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-success:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .title-section {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+
+        .title-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .list-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .description-box {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            max-height: 200px;
+            overflow-y: auto;
+            color: #374151;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .items-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .item-section {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .item-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+        }
+
+        .item-card.matched {
+            background: #d1fae5;
+            border-color: #6ee7b7;
+        }
+
+        .item-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-unmatched {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-matched {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .contact-form {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-label.required::after {
+            content: ' *';
+            color: #ef4444;
+        }
+
+        .form-input {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-input:disabled {
+            background: #f3f4f6;
+            cursor: not-allowed;
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .job-titles-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .job-title-pill {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .job-title-pill:hover {
+            border-color: #667eea;
+            background: #eff6ff;
+        }
+
+        .job-title-pill.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .hospital-search {
+            position: relative;
+        }
+
+        .hospital-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            margin-top: 0.25rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            display: none;
+        }
+
+        .hospital-dropdown.show {
+            display: block;
+        }
+
+        .hospital-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .hospital-item:hover {
+            background: #eff6ff;
+        }
+
+        .hospital-item.selected {
+            background: #dbeafe;
+            font-weight: 600;
+        }
+
+        .hospital-name {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+
+        .hospital-city {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6b7280;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.2s;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+
+        .modal-body {
+            margin-bottom: 1.5rem;
+            color: #374151;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .completion-summary {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .completion-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .completion-message {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .completion-submessage {
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Header with Stats -->
+            <div class="header">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h1 style="font-size: 2rem; font-weight: bold;">Contact Matching System</h1>
+                    <button id="exitBtn" class="btn btn-secondary" style="display: none;">Release Lock & Exit</button>
+                </div>
+                <div id="statsContainer" style="display: none;">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Records</div>
+                            <div class="stat-value" id="statTotalRecords">0</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressRecords" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Matched Records</div>
+                            <div class="stat-value" id="statMatchedRecords">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Total Phones</div>
+                            <div class="stat-value" id="statTotalPhones">0</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressPhones" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Total Emails</div>
+                            <div class="stat-value" id="statTotalEmails">0</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressEmails" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content">
+                <!-- Welcome Screen -->
+                <div id="welcomeScreen" class="welcome-screen">
+                    <div class="welcome-icon">👋</div>
+                    <h2 style="font-size: 1.5rem; font-weight: bold; color: #1f2937; margin-bottom: 1rem;">Welcome to Contact Matching</h2>
+                    <p style="color: #6b7280; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+                        This tool helps you match phone numbers and email addresses from Trello cards to create structured contact records in the database.
+                    </p>
+                    <button id="startBtn" class="btn btn-primary">
+                        Start Matching
+                    </button>
+                </div>
+
+                <!-- All Complete Screen -->
+                <div id="completeScreen" style="display: none;">
+                    <div class="completion-summary">
+                        <div class="completion-icon">🎉</div>
+                        <div class="completion-message">All Records Matched!</div>
+                        <div class="completion-submessage">Great job! There are no more records to match.</div>
+                        <button onclick="window.location.href='index.html'" class="btn btn-primary">
+                            Go to Main Dashboard
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error Display -->
+                <div id="errorContainer"></div>
+
+                <!-- Matching Interface -->
+                <div id="matchingInterface" style="display: none;">
+                    <!-- Title Section -->
+                    <div class="title-section">
+                        <div class="list-badge" id="listName"></div>
+                        <div class="title-header" id="titleText"></div>
+                        <div class="description-box" id="descriptionText"></div>
+                    </div>
+
+                    <!-- Items Grid -->
+                    <div class="items-grid">
+                        <!-- Phones -->
+                        <div class="item-section">
+                            <div class="section-title">
+                                📱 Phone Numbers
+                                <span id="phonesCount" class="status-badge status-unmatched">0 unmatched</span>
+                            </div>
+                            <div id="phonesContainer"></div>
+                        </div>
+
+                        <!-- Emails -->
+                        <div class="item-section">
+                            <div class="section-title">
+                                📧 Email Addresses
+                                <span id="emailsCount" class="status-badge status-unmatched">0 unmatched</span>
+                            </div>
+                            <div id="emailsContainer"></div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="actions">
+                        <button id="releaseBtn" class="btn btn-secondary">Release Lock</button>
+                        <button id="completeBtn" class="btn btn-success" disabled>Complete Matching</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Username Modal -->
+    <div id="usernameModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Enter Your Username</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label required">Username</label>
+                    <input type="text" id="usernameInput" class="form-input" placeholder="Enter your name" autocomplete="off">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="usernameSubmit" class="btn btn-primary">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://172.16.16.188:3000';
+
+        // State
+        let currentUser = null;
+        let currentRawData = null;
+        let jobTitles = [];
+        let hospitals = [];
+        let unmatchedPhones = [];
+        let unmatchedEmails = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // Check for saved username
+            currentUser = localStorage.getItem('matchingUsername');
+
+            if (!currentUser) {
+                showUsernameModal();
+            }
+
+            // Event listeners
+            document.getElementById('startBtn').addEventListener('click', startMatching);
+            document.getElementById('usernameSubmit').addEventListener('click', saveUsername);
+            document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') saveUsername();
+            });
+            document.getElementById('exitBtn').addEventListener('click', exitMatching);
+            document.getElementById('releaseBtn').addEventListener('click', releaseLock);
+            document.getElementById('completeBtn').addEventListener('click', completeMatching);
+
+            // Handle page close/refresh
+            window.addEventListener('beforeunload', (e) => {
+                if (currentRawData) {
+                    releaseLockSync();
+                }
+            });
+        }
+
+        // Username Management
+        function showUsernameModal() {
+            document.getElementById('usernameModal').classList.add('show');
+            document.getElementById('usernameInput').focus();
+        }
+
+        function hideUsernameModal() {
+            document.getElementById('usernameModal').classList.remove('show');
+        }
+
+        function saveUsername() {
+            const username = document.getElementById('usernameInput').value.trim();
+            if (!username) {
+                showError('Please enter a username');
+                return;
+            }
+
+            currentUser = username;
+            localStorage.setItem('matchingUsername', username);
+            hideUsernameModal();
+        }
+
+        // API Calls
+        async function fetchStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/matching/stats`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    updateStatsDisplay(data);
+                }
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+            }
+        }
+
+        async function startMatching() {
+            if (!currentUser) {
+                showUsernameModal();
+                return;
+            }
+
+            showLoading(document.getElementById('startBtn'));
+            hideError();
+
+            try {
+                // Fetch stats first
+                await fetchStats();
+                document.getElementById('statsContainer').style.display = 'block';
+
+                // Fetch job titles and hospitals
+                await Promise.all([
+                    fetchJobTitles(),
+                    fetchHospitals('')
+                ]);
+
+                // Get next unmatched record
+                await loadNextRecord();
+            } catch (error) {
+                showError('Failed to start matching: ' + error.message);
+                hideLoading(document.getElementById('startBtn'));
+            }
+        }
+
+        async function loadNextRecord() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/matching/next?username=${encodeURIComponent(currentUser)}`);
+                const data = await response.json();
+
+                if (response.status === 404) {
+                    // All records are matched
+                    showCompleteScreen();
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load record');
+                }
+
+                currentRawData = data;
+                unmatchedPhones = data.phones || [];
+                unmatchedEmails = data.emails || [];
+
+                showMatchingInterface();
+                renderMatchingData();
+
+                // Refresh stats
+                await fetchStats();
+            } catch (error) {
+                showError('Failed to load next record: ' + error.message);
+            }
+        }
+
+        async function fetchJobTitles() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/matching/job-titles`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    jobTitles = data.jobTitles || [];
+                }
+            } catch (error) {
+                console.error('Error fetching job titles:', error);
+            }
+        }
+
+        async function fetchHospitals(search = '') {
+            try {
+                const url = search
+                    ? `${API_BASE_URL}/api/matching/hospitals?search=${encodeURIComponent(search)}`
+                    : `${API_BASE_URL}/api/matching/hospitals`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (response.ok) {
+                    hospitals = data.hospitals || [];
+                    return hospitals;
+                }
+            } catch (error) {
+                console.error('Error fetching hospitals:', error);
+                return [];
+            }
+        }
+
+        async function assignContact(phoneId, emailId, contactData) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/matching/assign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: currentUser,
+                        phoneId,
+                        emailId,
+                        ...contactData
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to assign contact');
+                }
+
+                return data;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        async function completeMatching() {
+            if (!currentRawData) return;
+
+            const remaining = unmatchedPhones.length + unmatchedEmails.length;
+            if (remaining > 0) {
+                showError(`Cannot complete matching. ${remaining} items still unmatched.`);
+                return;
+            }
+
+            if (!confirm('Complete matching for this record and move to the next one?')) {
+                return;
+            }
+
+            showLoading(document.getElementById('completeBtn'));
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/matching/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rawDataId: currentRawData.rawDataId,
+                        username: currentUser
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to complete matching');
+                }
+
+                showSuccess('Matching completed! Loading next record...');
+
+                // Load next record after a short delay
+                setTimeout(() => {
+                    loadNextRecord();
+                }, 1000);
+            } catch (error) {
+                showError('Failed to complete matching: ' + error.message);
+                hideLoading(document.getElementById('completeBtn'));
+            }
+        }
+
+        async function releaseLock() {
+            if (!currentRawData) return;
+
+            if (!confirm('Release the lock on this record? Your progress will be saved but the record will be available for others.')) {
+                return;
+            }
+
+            try {
+                await releaseLockSync();
+                window.location.reload();
+            } catch (error) {
+                showError('Failed to release lock: ' + error.message);
+            }
+        }
+
+        async function releaseLockSync() {
+            if (!currentRawData) return;
+
+            try {
+                await fetch(`${API_BASE_URL}/api/matching/release`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rawDataId: currentRawData.rawDataId,
+                        username: currentUser
+                    }),
+                    keepalive: true
+                });
+            } catch (error) {
+                console.error('Error releasing lock:', error);
+            }
+        }
+
+        function exitMatching() {
+            if (currentRawData) {
+                releaseLock();
+            } else {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // UI Rendering
+        function updateStatsDisplay(stats) {
+            document.getElementById('statTotalRecords').textContent = stats.rawData.total;
+            document.getElementById('statMatchedRecords').textContent = stats.rawData.matched;
+            document.getElementById('statTotalPhones').textContent = stats.phones.total;
+            document.getElementById('statTotalEmails').textContent = stats.emails.total;
+
+            document.getElementById('progressRecords').style.width = stats.rawData.percentComplete.toFixed(1) + '%';
+            document.getElementById('progressPhones').style.width = stats.phones.percentComplete.toFixed(1) + '%';
+            document.getElementById('progressEmails').style.width = stats.emails.percentComplete.toFixed(1) + '%';
+        }
+
+        function showMatchingInterface() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('completeScreen').style.display = 'none';
+            document.getElementById('matchingInterface').style.display = 'block';
+            document.getElementById('exitBtn').style.display = 'block';
+        }
+
+        function showCompleteScreen() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('matchingInterface').style.display = 'none';
+            document.getElementById('completeScreen').style.display = 'block';
+            document.getElementById('exitBtn').style.display = 'none';
+            currentRawData = null;
+        }
+
+        function renderMatchingData() {
+            // Update title section
+            document.getElementById('listName').textContent = currentRawData.listName || 'N/A';
+            document.getElementById('titleText').textContent = currentRawData.title || 'No Title';
+            document.getElementById('descriptionText').textContent = currentRawData.description || 'No description available';
+
+            // Update counts
+            document.getElementById('phonesCount').textContent = `${unmatchedPhones.length} unmatched`;
+            document.getElementById('emailsCount').textContent = `${unmatchedEmails.length} unmatched`;
+
+            // Render phones
+            const phonesContainer = document.getElementById('phonesContainer');
+            phonesContainer.innerHTML = '';
+
+            if (unmatchedPhones.length === 0) {
+                phonesContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><div>All phones matched!</div></div>';
+            } else {
+                unmatchedPhones.forEach(phone => {
+                    phonesContainer.appendChild(createItemCard('phone', phone));
+                });
+            }
+
+            // Render emails
+            const emailsContainer = document.getElementById('emailsContainer');
+            emailsContainer.innerHTML = '';
+
+            if (unmatchedEmails.length === 0) {
+                emailsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><div>All emails matched!</div></div>';
+            } else {
+                unmatchedEmails.forEach(email => {
+                    emailsContainer.appendChild(createItemCard('email', email));
+                });
+            }
+
+            // Update complete button
+            updateCompleteButton();
+        }
+
+        function createItemCard(type, item) {
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.id = `item-${type}-${item.id}`;
+
+            const value = type === 'phone' ? item.phoneNumber : item.emailAddress;
+            const icon = type === 'phone' ? '📱' : '📧';
+
+            card.innerHTML = `
+                <div class="item-value">
+                    <span>${icon} ${value}</span>
+                    <span class="status-badge status-unmatched">Unmatched</span>
+                </div>
+                <div class="contact-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label required">First Name</label>
+                            <input type="text" class="form-input" data-field="firstName" placeholder="Enter first name">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-input" data-field="lastName" placeholder="Enter last name">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Job Title</label>
+                            <div class="job-titles-grid" data-field="jobTitle">
+                                ${jobTitles.map(jt => `
+                                    <div class="job-title-pill" data-job-id="${jt.id}">${jt.displayName}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Hospital</label>
+                            <div class="hospital-search">
+                                <input type="text" class="form-input" data-field="hospitalSearch" placeholder="Search hospital...">
+                                <div class="hospital-dropdown" data-field="hospitalDropdown"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-input form-textarea" data-field="notes" placeholder="Additional notes..."></textarea>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="saveContact('${type}', '${item.id}')">
+                            Save Contact
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Add job title selection
+            card.querySelectorAll('.job-title-pill').forEach(pill => {
+                pill.addEventListener('click', () => {
+                    card.querySelectorAll('.job-title-pill').forEach(p => p.classList.remove('selected'));
+                    pill.classList.add('selected');
+                });
+            });
+
+            // Add hospital search
+            const hospitalSearch = card.querySelector('[data-field="hospitalSearch"]');
+            const hospitalDropdown = card.querySelector('[data-field="hospitalDropdown"]');
+
+            let searchTimeout;
+            hospitalSearch.addEventListener('input', async (e) => {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim();
+
+                searchTimeout = setTimeout(async () => {
+                    const results = await fetchHospitals(query);
+                    renderHospitalDropdown(hospitalDropdown, results, card);
+                    hospitalDropdown.classList.add('show');
+                }, 300);
+            });
+
+            hospitalSearch.addEventListener('focus', () => {
+                if (hospitals.length > 0) {
+                    renderHospitalDropdown(hospitalDropdown, hospitals, card);
+                    hospitalDropdown.classList.add('show');
+                }
+            });
+
+            // Close dropdown on outside click
+            document.addEventListener('click', (e) => {
+                if (!card.contains(e.target)) {
+                    hospitalDropdown.classList.remove('show');
+                }
+            });
+
+            return card;
+        }
+
+        function renderHospitalDropdown(dropdown, hospitalList, card) {
+            if (hospitalList.length === 0) {
+                dropdown.innerHTML = '<div style="padding: 1rem; text-align: center; color: #6b7280;">No hospitals found</div>';
+                return;
+            }
+
+            dropdown.innerHTML = hospitalList.map(hospital => `
+                <div class="hospital-item" data-hospital-id="${hospital.id}">
+                    <div class="hospital-name">${hospital.hastaneAdi}</div>
+                    <div class="hospital-city">${hospital.il || 'N/A'}</div>
+                </div>
+            `).join('');
+
+            dropdown.querySelectorAll('.hospital-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const hospitalId = item.dataset.hospitalId;
+                    const hospitalName = item.querySelector('.hospital-name').textContent;
+
+                    dropdown.querySelectorAll('.hospital-item').forEach(i => i.classList.remove('selected'));
+                    item.classList.add('selected');
+
+                    card.querySelector('[data-field="hospitalSearch"]').value = hospitalName;
+                    card.dataset.selectedHospital = hospitalId;
+                    dropdown.classList.remove('show');
+                });
+            });
+        }
+
+        window.saveContact = async function(type, itemId) {
+            const card = document.getElementById(`item-${type}-${itemId}`);
+            const firstName = card.querySelector('[data-field="firstName"]').value.trim();
+            const lastName = card.querySelector('[data-field="lastName"]').value.trim();
+            const notes = card.querySelector('[data-field="notes"]').value.trim();
+
+            const selectedJobPill = card.querySelector('.job-title-pill.selected');
+            const jobTitleId = selectedJobPill ? selectedJobPill.dataset.jobId : null;
+
+            const hospitalId = card.dataset.selectedHospital || null;
+
+            // Validation
+            if (!firstName) {
+                showError('First name is required');
+                card.querySelector('[data-field="firstName"]').focus();
+                return;
+            }
+
+            const saveBtn = card.querySelector('.btn-primary');
+            showLoading(saveBtn);
+
+            try {
+                const contactData = {
+                    firstName,
+                    lastName: lastName || undefined,
+                    jobTitleId,
+                    hospitalId,
+                    notes: notes || undefined
+                };
+
+                const phoneId = type === 'phone' ? itemId : undefined;
+                const emailId = type === 'email' ? itemId : undefined;
+
+                await assignContact(phoneId, emailId, contactData);
+
+                // Mark as matched
+                if (type === 'phone') {
+                    unmatchedPhones = unmatchedPhones.filter(p => p.id !== itemId);
+                } else {
+                    unmatchedEmails = unmatchedEmails.filter(e => e.id !== itemId);
+                }
+
+                showSuccess('Contact saved successfully!');
+
+                // Re-render
+                setTimeout(() => {
+                    renderMatchingData();
+                }, 500);
+            } catch (error) {
+                showError('Failed to save contact: ' + error.message);
+                hideLoading(saveBtn);
+            }
+        };
+
+        function updateCompleteButton() {
+            const completeBtn = document.getElementById('completeBtn');
+            const remaining = unmatchedPhones.length + unmatchedEmails.length;
+
+            if (remaining === 0) {
+                completeBtn.disabled = false;
+                completeBtn.textContent = 'Complete Matching';
+            } else {
+                completeBtn.disabled = true;
+                completeBtn.textContent = `Complete Matching (${remaining} remaining)`;
+            }
+        }
+
+        // Utility Functions
+        function showLoading(button) {
+            if (!button) return;
+            button.dataset.originalText = button.textContent;
+            button.innerHTML = '<span class="loading-spinner"></span>';
+            button.disabled = true;
+        }
+
+        function hideLoading(button) {
+            if (!button) return;
+            button.textContent = button.dataset.originalText || 'Submit';
+            button.disabled = false;
+        }
+
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = `
+                <div class="alert alert-error">
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+            setTimeout(() => hideError(), 5000);
+        }
+
+        function showSuccess(message) {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = `
+                <div class="alert alert-success">
+                    <strong>Success:</strong> ${message}
+                </div>
+            `;
+            setTimeout(() => hideError(), 3000);
+        }
+
+        function hideError() {
+            document.getElementById('errorContainer').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

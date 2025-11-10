@@ -18,15 +18,6 @@ model TrelloMatches {
   // Relation to hospitals reference table
   hospital HospitalReference? @relation(fields: [hospitalId], references: [id])
 
-  // Contact information
-  telefonDoktor      String? @map("telefonDoktor")
-  telefonSatinalma   String? @map("telefonSatinalma")
-  telefonBiyomedikal String? @map("telefonBiyomedikal")
-
-  mailDoktor      String? @map("mailDoktor")
-  mailSatinalma   String? @map("mailSatinalma")
-  mailBiyomedikal String? @map("mailBiyomedikal")
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -43,10 +34,80 @@ model RawData {
   shortUrl    String? @map("short_url")
   fullUrl     String? @map("full_url")
 
+  // Matching tracking fields
+  isFullyMatched        Boolean   @default(false) @map("is_fully_matched") // All phones/emails matched
+  matchingInProgressBy  String?   @map("matching_in_progress_by") // Username currently working on this
+  matchingLockedAt      DateTime? @map("matching_locked_at") // When lock was acquired
+  matchingCompletedBy   String?   @map("matching_completed_by") // Username who completed matching
+  matchingCompletedAt   DateTime? @map("matching_completed_at") // When matching was completed
+
+  // Reverse relations to extracted data
+  phones   Phone[]
+  emails   Email[]
+  contacts Contact[] // Reverse relation to contacts
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([isFullyMatched])
+  @@index([matchingInProgressBy])
   @@map("trello_raw_datas")
+}
+
+// Extracted phone numbers from Trello raw data
+model Phone {
+  id          String  @id @default(uuid()) @db.Uuid
+  phoneNumber String  @unique @map("phone_number") // Extracted phone number
+  rawDataId   String  @map("raw_data_id") @db.Uuid // FK to RawData
+  trelloTitle String  @map("trello_title") // Denormalized title for quick access
+
+  // Matching tracking fields
+  isMatched         Boolean   @default(false) @map("is_matched") // Has been matched to a contact
+  matchedContactId  String?   @map("matched_contact_id") @db.Uuid // FK to Contact
+  matchedBy         String?   @map("matched_by") // Username who did the matching
+  matchedAt         DateTime? @map("matched_at") // When matching was done
+
+  // Relation to source raw data
+  rawData RawData @relation(fields: [rawDataId], references: [id], onDelete: Cascade)
+
+  // Relation to matched contact
+  matchedContact Contact? @relation("PhoneToContact", fields: [matchedContactId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([rawDataId])
+  @@index([isMatched])
+  @@index([matchedContactId])
+  @@map("phones")
+}
+
+// Extracted email addresses from Trello raw data
+model Email {
+  id           String  @id @default(uuid()) @db.Uuid
+  emailAddress String  @unique @map("email_address") // Extracted email address
+  rawDataId    String  @map("raw_data_id") @db.Uuid // FK to RawData
+  trelloTitle  String  @map("trello_title") // Denormalized title for quick access
+
+  // Matching tracking fields
+  isMatched         Boolean   @default(false) @map("is_matched") // Has been matched to a contact
+  matchedContactId  String?   @map("matched_contact_id") @db.Uuid // FK to Contact
+  matchedBy         String?   @map("matched_by") // Username who did the matching
+  matchedAt         DateTime? @map("matched_at") // When matching was done
+
+  // Relation to source raw data
+  rawData RawData @relation(fields: [rawDataId], references: [id], onDelete: Cascade)
+
+  // Relation to matched contact
+  matchedContact Contact? @relation("EmailToContact", fields: [matchedContactId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([rawDataId])
+  @@index([isMatched])
+  @@index([matchedContactId])
+  @@map("emails")
 }
 
 // Referans tablosu - Wikipedia'dan çekilen resmi hastane listesi
@@ -66,8 +127,9 @@ model HospitalReference {
 
   // Reverse relation to contacts (NEW)
   contacts       TrelloMatches[]
-  personContacts PersonContact[] // Reverse relation to person contacts
-  contactPersons Contact[]       // Reverse relation to new Contact model
+  personContacts PersonContact[]  // Reverse relation to person contacts
+  contactPersons Contact[]        // Reverse relation to new Contact model
+  odooContacts   OdooContact[]    @relation("OdooToHospital") // Reverse relation to Odoo contacts
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -194,16 +256,25 @@ model City {
 model Contact {
   id         String  @id @default(uuid()) @db.Uuid
   firstName  String  @map("first_name") // First name (required)
-  lastName   String  @map("last_name") // Last name (required)
+  lastName   String? @map("last_name") // Last name (optional - changed from required)
   phone      String? // Phone number (optional)
   email      String? // Email address (optional)
   notes      String? // Notes field, can be long text (optional)
   jobTitleId String? @map("job_title_id") @db.Uuid // FK to job_titles (optional)
   hospitalId String? @map("hospital_id") @db.Uuid // FK to hospitals (optional)
 
+  // NEW: Trello raw data tracking fields
+  trelloTitle String? @map("trello_title") // Raw data title
+  rawDataId   String? @map("raw_data_id") @db.Uuid // FK to raw_data
+
   // Relations
   jobTitle JobTitle?          @relation(fields: [jobTitleId], references: [id])
   hospital HospitalReference? @relation(fields: [hospitalId], references: [id])
+  rawData  RawData?           @relation(fields: [rawDataId], references: [id])
+
+  // Reverse relations for matched phones and emails
+  matchedPhones Phone[] @relation("PhoneToContact")
+  matchedEmails Email[] @relation("EmailToContact")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -213,5 +284,40 @@ model Contact {
   @@index([email])
   @@index([firstName])
   @@index([lastName])
+  @@index([rawDataId])
+  @@index([trelloTitle])
   @@map("contacts")
+}
+
+// Odoo Contact model - Staged import from Odoo live system
+model OdooContact {
+  id           String  @id @default(uuid()) @db.Uuid
+  completeName String  @map("complete_name") // Full name from Odoo
+  isCompany    Boolean @default(false) @map("is_company") // Company vs Person flag
+  state        String? // Province/State (il)
+  city         String? // District/City (ilçe)
+  country      String? // Country name
+  email        String? // Contact email
+  phone        String? // Contact phone
+  salesperson  String? // Sales representative
+  users        String? // Assigned users
+
+  // Matching fields (for future hospital matching)
+  matchedHospitalId String? @map("matched_hospital_id") @db.Uuid // FK to hospitals (nullable)
+  matchStatus       String  @default("pending") @map("match_status") // pending, matched, unmatched, manual
+  matchConfidence   Float?  @map("match_confidence") // Confidence score 0-1
+
+  // Relations
+  matchedHospital HospitalReference? @relation("OdooToHospital", fields: [matchedHospitalId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isCompany])
+  @@index([state])
+  @@index([city])
+  @@index([email])
+  @@index([matchStatus])
+  @@index([matchedHospitalId])
+  @@map("odoo_contacts")
 }

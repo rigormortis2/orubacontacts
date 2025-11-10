@@ -1,0 +1,2140 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag & Drop Contact Matching - Oruba Contacts</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 1920px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-title {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .stats-compact {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.875rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            color: #1f2937;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        /* Lock Timer Container */
+        .lock-timer-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: #fef3c7;
+            border-radius: 8px;
+            border: 2px solid #f59e0b;
+        }
+
+        .lock-icon {
+            font-size: 1.5rem;
+        }
+
+        .lock-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lock-label {
+            font-size: 0.75rem;
+            color: #92400e;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .lock-countdown {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #92400e;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .lock-countdown.warning {
+            color: #dc2626;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Layout - 4 COLUMNS */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 240px minmax(400px, 1fr) 200px 300px;
+            gap: 0.75rem;
+            min-height: 70vh;
+            max-height: calc(100vh - 280px);
+        }
+
+        /* All columns scrollable */
+        .main-layout > * {
+            overflow-y: auto;
+            max-height: calc(100vh - 280px);
+        }
+
+        @media (max-width: 1600px) {
+            .main-layout {
+                grid-template-columns: 220px minmax(350px, 1fr) 180px 280px;
+            }
+        }
+
+        @media (max-width: 1400px) {
+            .main-layout {
+                grid-template-columns: 200px 1fr 160px 250px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            /* Stack to 2x2 grid */
+            .main-layout {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto;
+                max-height: none;
+            }
+            .main-layout > * {
+                max-height: 500px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            /* Stack to single column */
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .main-layout > * {
+                max-height: 400px;
+            }
+        }
+
+        /* Custom scrollbar */
+        .main-layout > *::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .main-layout > *::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+
+        .main-layout > *::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .main-layout > *::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Side Panels */
+        .side-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-title {
+            font-size: 0.875rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: sticky;
+            top: 0;
+            background: white;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+            z-index: 5;
+        }
+
+        .panel-count {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Description Panel (Column 4) */
+        .description-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .description-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .description-title {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .description-list-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .description-text {
+            color: #4b5563;
+            line-height: 1.6;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Draggable Items */
+        .draggable-item {
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: move;
+            transition: all 0.2s;
+            user-select: none;
+            position: relative;
+        }
+
+        .draggable-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .draggable-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        /* Fade-out animation for matched items */
+        @keyframes fadeSlideOut {
+            0% {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: translateX(20px) scale(0.95);
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(40px) scale(0.8);
+                height: 0;
+                margin: 0;
+                padding: 0;
+            }
+        }
+
+        .draggable-item.removing {
+            animation: fadeSlideOut 0.5s ease-out forwards;
+            pointer-events: none;
+        }
+
+        /* Success checkmark animation */
+        @keyframes successPop {
+            0% {
+                transform: scale(0) translate(-50%, -50%);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2) translate(-50%, -50%);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1) translate(-50%, -50%);
+                opacity: 1;
+            }
+        }
+
+        .success-checkmark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: #10b981;
+            animation: successPop 0.3s ease-out;
+            z-index: 10;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .draggable-item.phone {
+            border-color: #93c5fd;
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        }
+
+        .draggable-item.phone:hover {
+            border-color: #3b82f6;
+        }
+
+        .draggable-item.email {
+            border-color: #86efac;
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        }
+
+        .draggable-item.email:hover {
+            border-color: #22c55e;
+        }
+
+        .draggable-item.job-title {
+            border-color: #c4b5fd;
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8125rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .draggable-item.job-title:hover {
+            border-color: #8b5cf6;
+        }
+
+        .item-icon {
+            font-size: 1.25rem;
+            margin-right: 0.5rem;
+        }
+
+        .item-text {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1f2937;
+            word-break: break-word;
+        }
+
+        /* Center Panel - Contacts */
+        .center-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .contacts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            position: sticky;
+            top: 0;
+            background: white;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+            z-index: 10;
+        }
+
+        .contacts-title {
+            font-size: 0.875rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        /* Contact Card - Compact */
+        .contact-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 0.875rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .contact-card:hover {
+            border-color: #667eea;
+        }
+
+        .contact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .contact-number {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 0.875rem;
+        }
+
+        .delete-contact {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .delete-contact:hover {
+            background: #fecaca;
+        }
+
+        .contact-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .input-label.required::after {
+            content: ' *';
+            color: #ef4444;
+        }
+
+        .contact-input {
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 0.375rem 0.5rem;
+            font-size: 0.8125rem;
+            transition: all 0.2s;
+        }
+
+        .contact-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Drop Zones */
+        .drop-zone {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 0.5rem;
+            min-height: 50px;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #667eea;
+            background: #eff6ff;
+            transform: scale(1.02);
+        }
+
+        .drop-zone-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .drop-zone-content {
+            min-height: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .drop-zone-empty {
+            color: #9ca3af;
+            font-size: 0.875rem;
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .dropped-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 0.375rem 0.5rem;
+            font-size: 0.8125rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: dropIn 0.3s ease-out;
+        }
+
+        @keyframes dropIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropped-item.phone {
+            background: #dbeafe;
+            border-color: #3b82f6;
+        }
+
+        .dropped-item.email {
+            background: #dcfce7;
+            border-color: #22c55e;
+        }
+
+        .dropped-item.job-title {
+            background: #ede9fe;
+            border-color: #8b5cf6;
+        }
+
+        .remove-item {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .remove-item:hover {
+            background: #fecaca;
+        }
+
+        /* Manuel Input Section */
+        .manual-input-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed #d1d5db;
+        }
+
+        .manual-input-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .manual-input-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .manual-input {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .manual-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .manual-input.phone-input {
+            border-color: #93c5fd;
+        }
+
+        .manual-input.phone-input:focus {
+            border-color: #3b82f6;
+        }
+
+        .manual-input.email-input {
+            border-color: #86efac;
+        }
+
+        .manual-input.email-input:focus {
+            border-color: #22c55e;
+        }
+
+        .manual-add-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            min-width: 60px;
+        }
+
+        .manual-add-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .manual-badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-size: 0.625rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-size: 0.875rem;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8125rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Footer */
+        .footer-actions {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .validation-message {
+            color: #dc2626;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .validation-message.success {
+            color: #10b981;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.2s;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            color: #1f2937;
+        }
+
+        .preview-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .preview-summary {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .preview-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #166534;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .preview-contact {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .preview-contact-name {
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .preview-contact-detail {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-left: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            animation: slideIn 0.3s;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 2px solid #fecaca;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 2px solid #a7f3d0;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 2px solid #fde68a;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #9ca3af;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <div class="header-title">Contact Matching - Drag & Drop</div>
+                <div style="color: #6b7280; font-size: 0.875rem; margin-top: 0.25rem;">
+                    User: <strong id="currentUsername">-</strong>
+                </div>
+            </div>
+            <div class="header-right">
+                <!-- Lock Timer Container -->
+                <div class="lock-timer-container" id="lockTimerContainer" style="display: none;">
+                    <div class="lock-icon">🔒</div>
+                    <div class="lock-info">
+                        <div class="lock-label">Lock Suresi</div>
+                        <div class="lock-countdown" id="lockCountdown">10:00</div>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-compact">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Records</span>
+                        <span class="stat-value" id="statTotal">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Matched</span>
+                        <span class="stat-value" id="statMatched">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Remaining</span>
+                        <span class="stat-value" id="statRemaining">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Main Layout - 4 COLUMNS -->
+        <div class="main-layout" id="mainLayout" style="display: none;">
+            <!-- Column 1: Phones & Emails -->
+            <div class="side-panel">
+                <div class="panel-title">
+                    📱 Phones
+                    <span class="panel-count" id="phoneCount">0</span>
+                </div>
+                <div id="phonesContainer"></div>
+
+                <!-- Emails in same panel -->
+                <div class="panel-title" style="margin-top: 1.5rem;">
+                    📧 Emails
+                    <span class="panel-count" id="emailCount">0</span>
+                </div>
+                <div id="emailsContainer"></div>
+
+                <!-- Manuel Input Section -->
+                <div class="manual-input-section">
+                    <div class="manual-input-title">📝 Manuel Giriş</div>
+                    <div style="font-size: 0.75rem; color: #9ca3af; margin-bottom: 0.5rem;">
+                        Doğrudan buradan da ekleyebilirsiniz
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 2: Contact Cards -->
+            <div class="center-panel">
+                <div class="contacts-header">
+                    <div class="contacts-title">Contact Cards</div>
+                    <button class="btn btn-primary btn-sm" id="addContactBtn" onclick="addContact()">
+                        + Yeni Kişi
+                    </button>
+                </div>
+                <div id="contactsContainer"></div>
+            </div>
+
+            <!-- Column 3: Job Titles -->
+            <div class="side-panel">
+                <div class="panel-title">
+                    🏷️ Job Titles
+                    <span class="panel-count" id="jobTitleCount">0</span>
+                </div>
+                <div id="jobTitlesContainer"></div>
+            </div>
+
+            <!-- Column 4: Description -->
+            <div class="description-panel">
+                <div class="panel-title">📄 Açıklama</div>
+                <div class="description-content">
+                    <div class="description-title" id="titleText"></div>
+                    <div class="description-list-badge" id="listName"></div>
+                    <div class="description-text" id="descriptionText"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="footer-actions" id="footerActions" style="display: none;">
+            <div>
+                <div id="validationMessage" class="validation-message"></div>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-secondary" onclick="releaseLock()">
+                    🔓 Kilidi Bırak
+                </button>
+                <button class="btn btn-primary" onclick="showPreview()">Önizleme</button>
+                <button class="btn btn-success" id="saveBtn" onclick="saveAll()" disabled>
+                    Onayla ve Kaydet (0 kişi)
+                </button>
+            </div>
+        </div>
+
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="center-panel" style="text-align: center; padding: 3rem;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🎯</div>
+            <h2 style="font-size: 1.75rem; font-weight: bold; color: #1f2937; margin-bottom: 1rem;">
+                Sürükle-Bırak Contact Matching
+            </h2>
+            <p style="color: #6b7280; margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+                Telefon, email ve job title'ları sürükleyip contact kartlarına bırakarak hızlıca eşleştirme yapın.
+            </p>
+            <button class="btn btn-primary" onclick="startMatching()">Başla</button>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Önizleme - Oluşturulacak Kayıtlar</div>
+            <div class="preview-section" id="previewContent"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closePreview()">İptal</button>
+                <button class="btn btn-success" onclick="confirmSave()">Onayla ve Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Username Modal -->
+    <div id="usernameModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Kullanıcı Adı</div>
+            <div style="margin-bottom: 1.5rem;">
+                <label class="input-label required">Kullanıcı Adınız</label>
+                <input type="text" id="usernameInput" class="contact-input"
+                       placeholder="Adınızı girin" autocomplete="off" style="width: 100%;">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="saveUsername()">Devam</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://172.16.16.188:3000';
+
+        // State
+        let currentUser = null;
+        let currentRawData = null;
+        let contacts = [];
+        let availablePhones = [];
+        let availableEmails = [];
+        let availableJobTitles = [];
+        let contactIdCounter = 1;
+
+        // Lock Timer State
+        let lockTimer = null;
+        let lockExpiresAt = null;
+        let lockCountdownInterval = null;
+
+        // ============================================
+        // NORMALIZATION FUNCTIONS (ADDED)
+        // ============================================
+
+        /**
+         * Normalize phone number:
+         * - Remove all spaces, dashes, parentheses, dots, plus signs
+         * - Add leading 0 if missing
+         * - Validate format: exactly 11 digits (0xxxxxxxxxx)
+         * - Return normalized phone or throw error
+         */
+        function normalizePhone(phone) {
+            if (!phone) {
+                throw new Error('Telefon numarası boş olamaz');
+            }
+
+            // Remove all non-digit characters
+            let cleaned = phone.replace(/[\s\-\(\)\.\+]/g, '');
+
+            // Remove any remaining non-numeric characters
+            cleaned = cleaned.replace(/\D/g, '');
+
+            if (cleaned.length === 0) {
+                throw new Error('Geçerli bir telefon numarası giriniz');
+            }
+
+            // Add leading 0 if missing
+            if (!cleaned.startsWith('0')) {
+                cleaned = '0' + cleaned;
+            }
+
+            // Validate: must be exactly 11 digits
+            if (cleaned.length !== 11) {
+                throw new Error(`Geçersiz telefon formatı: 11 haneli olmalı (0xxxxxxxxxx). Girilen: ${cleaned.length} hane`);
+            }
+
+            // Additional validation: should start with 0
+            if (!cleaned.startsWith('0')) {
+                throw new Error('Telefon numarası 0 ile başlamalı');
+            }
+
+            return cleaned;
+        }
+
+        /**
+         * Normalize email address:
+         * - Trim spaces
+         * - Convert to lowercase
+         * - Remove middle spaces
+         * - Validate basic email format
+         * - Return normalized email or throw error
+         */
+        function normalizeEmail(email) {
+            if (!email) {
+                throw new Error('Email adresi boş olamaz');
+            }
+
+            // Trim leading/trailing spaces
+            let cleaned = email.trim();
+
+            // Remove all spaces (including middle spaces)
+            cleaned = cleaned.replace(/\s+/g, '');
+
+            // Convert to lowercase
+            cleaned = cleaned.toLowerCase();
+
+            // Validate basic email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(cleaned)) {
+                throw new Error('Geçersiz email formatı (örn: ornek@mail.com)');
+            }
+
+            return cleaned;
+        }
+
+        // ============================================
+        // END NORMALIZATION FUNCTIONS
+        // ============================================
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            currentUser = localStorage.getItem('matchingUsername');
+
+            if (!currentUser) {
+                showModal('usernameModal');
+            } else {
+                document.getElementById('currentUsername').textContent = currentUser;
+            }
+
+            document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') saveUsername();
+            });
+        }
+
+        // Username Management
+        function saveUsername() {
+            const username = document.getElementById('usernameInput').value.trim();
+            if (!username) {
+                showAlert('Lütfen kullanıcı adınızı girin', 'error');
+                return;
+            }
+
+            currentUser = username;
+            localStorage.setItem('matchingUsername', username);
+            document.getElementById('currentUsername').textContent = username;
+            closeModal('usernameModal');
+        }
+
+        // Lock Timer Functions
+        function startLockTimer(durationSeconds) {
+            lockExpiresAt = Date.now() + (durationSeconds * 1000);
+
+            // Show timer
+            document.getElementById('lockTimerContainer').style.display = 'flex';
+
+            // Update countdown every second
+            lockCountdownInterval = setInterval(() => {
+                const remaining = Math.max(0, lockExpiresAt - Date.now());
+                const seconds = Math.floor(remaining / 1000);
+
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+
+                const display = `${minutes}:${secs.toString().padStart(2, '0')}`;
+                const countdownEl = document.getElementById('lockCountdown');
+                countdownEl.textContent = display;
+
+                // Warning when < 2 minutes
+                if (seconds < 120) {
+                    countdownEl.classList.add('warning');
+                } else {
+                    countdownEl.classList.remove('warning');
+                }
+
+                // Timeout - release lock and reload
+                if (seconds === 0) {
+                    clearInterval(lockCountdownInterval);
+                    handleLockTimeout();
+                }
+            }, 1000);
+        }
+
+        function stopLockTimer() {
+            if (lockCountdownInterval) {
+                clearInterval(lockCountdownInterval);
+                lockCountdownInterval = null;
+            }
+            lockExpiresAt = null;
+            document.getElementById('lockTimerContainer').style.display = 'none';
+        }
+
+        async function handleLockTimeout() {
+            showAlert('Lock süresi doldu. Sayfa yenileniyor...', 'warning');
+
+            // Try to release lock
+            if (currentRawData) {
+                try {
+                    await fetch(`${API_BASE_URL}/api/matching/release`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            rawDataId: currentRawData.rawDataId || currentRawData.id,
+                            username: currentUser
+                        }),
+                        keepalive: true
+                    });
+                } catch (error) {
+                    console.error('Lock release error:', error);
+                }
+            }
+
+            // Reload after 2 seconds
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        }
+
+        // Release Lock Function
+        async function releaseLock() {
+            if (!currentRawData || !currentUser) {
+                return;
+            }
+
+            const confirmRelease = confirm('Lock\'u serbest bırakmak istediğinize emin misiniz? İlerlemeniz kaydedilmeyecek.');
+            if (!confirmRelease) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/matching/release`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rawDataId: currentRawData.rawDataId || currentRawData.id,
+                        username: currentUser
+                    })
+                });
+
+                if (response.ok) {
+                    stopLockTimer();
+                    showAlert('Lock serbest bırakıldı. Sayfa yenileniyor...', 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    const data = await response.json();
+                    showAlert('Lock serbest bırakılamadı: ' + (data.error || 'Bilinmeyen hata'), 'error');
+                }
+            } catch (error) {
+                showAlert('Bağlantı hatası: ' + error.message, 'error');
+            }
+        }
+
+        // Start Matching
+        async function startMatching() {
+            if (!currentUser) {
+                showModal('usernameModal');
+                return;
+            }
+
+            try {
+                showAlert('Veriler yükleniyor...', 'success');
+
+                // Fetch stats
+                await fetchStats();
+
+                // Fetch job titles
+                await fetchJobTitles();
+
+                // Get next unmatched record
+                await loadNextRecord();
+            } catch (error) {
+                showAlert('Başlatma hatası: ' + error.message, 'error');
+            }
+        }
+
+        // API Calls
+        async function fetchStats() {
+            const response = await fetch(`${API_BASE_URL}/api/matching/stats`);
+            const data = await response.json();
+
+            if (response.ok) {
+                document.getElementById('statTotal').textContent = data.rawData.total;
+                document.getElementById('statMatched').textContent = data.rawData.matched;
+                document.getElementById('statRemaining').textContent = data.rawData.unmatched;
+            }
+        }
+
+        async function fetchJobTitles() {
+            const response = await fetch(`${API_BASE_URL}/api/matching/job-titles`);
+            const data = await response.json();
+
+            if (response.ok) {
+                availableJobTitles = data.jobTitles || [];
+            }
+        }
+
+        async function loadNextRecord() {
+            const response = await fetch(`${API_BASE_URL}/api/matching/next?username=${encodeURIComponent(currentUser)}`);
+
+            if (response.status === 404) {
+                showAlert('Tüm kayıtlar eşleştirilmiş!', 'success');
+                return;
+            }
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Kayıt yüklenemedi');
+            }
+
+            console.log('Loaded data:', data);
+            console.log('Phones:', data.phones);
+            console.log('Emails:', data.emails);
+
+            currentRawData = data;
+            availablePhones = data.phones || [];
+            availableEmails = data.emails || [];
+
+            // Initialize with one empty contact
+            contacts = [createEmptyContact()];
+
+            // Start lock timer (10 minutes)
+            startLockTimer(10 * 60); // 10 minutes in seconds
+
+            renderInterface();
+            showAlert('Kayıt yüklendi! Eşleştirmeye başlayabilirsiniz.', 'success');
+        }
+
+        // Contact Management
+        function createEmptyContact() {
+            return {
+                tempId: `temp-${contactIdCounter++}`,
+                firstName: '',
+                lastName: '',
+                jobTitleId: null,
+                jobTitleName: null,
+                phoneIds: [],
+                emailIds: [],
+                manualPhones: [],
+                manualEmails: []
+            };
+        }
+
+        function addContact() {
+            contacts.push(createEmptyContact());
+            renderContacts();
+            validateState();
+        }
+
+        function removeContact(tempId) {
+            if (contacts.length <= 1) {
+                showAlert('En az 1 contact kartı olmalı', 'error');
+                return;
+            }
+
+            const contact = contacts.find(c => c.tempId === tempId);
+            if (contact) {
+                // Return items back to available pools (only non-manual items)
+                contact.phoneIds.forEach(phoneId => {
+                    if (!phoneId.startsWith('manual-')) {
+                        const phone = currentRawData.phones.find(p => p.id === phoneId);
+                        if (phone && !availablePhones.find(p => p.id === phoneId)) {
+                            availablePhones.push(phone);
+                        }
+                    }
+                });
+                contact.emailIds.forEach(emailId => {
+                    if (!emailId.startsWith('manual-')) {
+                        const email = currentRawData.emails.find(e => e.id === emailId);
+                        if (email && !availableEmails.find(e => e.id === emailId)) {
+                            availableEmails.push(email);
+                        }
+                    }
+                });
+            }
+
+            contacts = contacts.filter(c => c.tempId !== tempId);
+            renderInterface();
+        }
+
+        // ============================================
+        // UPDATED: Manuel Input Functions (WITH NORMALIZATION)
+        // ============================================
+        function addManualItem(contactId, type) {
+            const input = document.querySelector(`input[data-contact-id="${contactId}"][data-type="${type}"]`);
+            const value = input.value.trim();
+
+            if (!value) {
+                showAlert(`Lütfen ${type === 'phone' ? 'telefon' : 'email'} girin`, 'error');
+                return;
+            }
+
+            // APPLY NORMALIZATION (MODIFIED)
+            let normalizedValue;
+            try {
+                if (type === 'phone') {
+                    normalizedValue = normalizePhone(value);
+                } else if (type === 'email') {
+                    normalizedValue = normalizeEmail(value);
+                }
+            } catch (error) {
+                showAlert(error.message, 'error');
+                return;
+            }
+
+            // Create manual item with normalized value
+            const contact = contacts.find(c => c.tempId === contactId);
+            if (contact) {
+                const manualItem = {
+                    id: `manual-${Date.now()}`,
+                    value: normalizedValue, // Use normalized value
+                    isManual: true
+                };
+
+                if (type === 'phone') {
+                    contact.phoneIds.push(manualItem.id);
+                    if (!contact.manualPhones) contact.manualPhones = [];
+                    contact.manualPhones.push(manualItem);
+                } else {
+                    contact.emailIds.push(manualItem.id);
+                    if (!contact.manualEmails) contact.manualEmails = [];
+                    contact.manualEmails.push(manualItem);
+                }
+
+                input.value = '';
+                renderInterface();
+                showAlert(`${type === 'phone' ? 'Telefon' : 'Email'} eklendi: ${normalizedValue}`, 'success');
+            }
+        }
+
+        function handleManualInput(event, contactId, type) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addManualItem(contactId, type);
+            }
+        }
+
+        // ============================================
+        // END UPDATED Manuel Input Functions
+        // ============================================
+
+        // Render Functions
+        function renderInterface() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('mainLayout').style.display = 'grid';
+            document.getElementById('footerActions').style.display = 'flex';
+
+            // Render all sections
+            renderPhones();
+            renderEmails();
+            renderJobTitles();
+            renderContacts();
+            renderDescription();
+            validateState();
+        }
+
+        function renderDescription() {
+            if (!currentRawData) return;
+
+            document.getElementById('titleText').textContent = currentRawData.title || 'No Title';
+            document.getElementById('listName').textContent = currentRawData.listName || 'N/A';
+            document.getElementById('descriptionText').textContent = currentRawData.description || 'No description available';
+        }
+
+        function renderPhones() {
+            const container = document.getElementById('phonesContainer');
+            document.getElementById('phoneCount').textContent = availablePhones.length;
+
+            if (availablePhones.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><div>Tüm telefonlar eşleştirildi</div></div>';
+                return;
+            }
+
+            container.innerHTML = availablePhones.map(phone => `
+                <div class="draggable-item phone" draggable="true"
+                     data-type="phone" data-id="${phone.id}" data-value="${phone.phoneNumber}">
+                    <span class="item-icon">📞</span>
+                    <span class="item-text">${phone.phoneNumber}</span>
+                </div>
+            `).join('');
+
+            attachDragListeners();
+        }
+
+        function renderEmails() {
+            const container = document.getElementById('emailsContainer');
+            console.log('renderEmails called, availableEmails:', availableEmails);
+            document.getElementById('emailCount').textContent = availableEmails.length;
+
+            if (availableEmails.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><div>Tüm emailler eşleştirildi</div></div>';
+                return;
+            }
+
+            container.innerHTML = availableEmails.map(email => `
+                <div class="draggable-item email" draggable="true"
+                     data-type="email" data-id="${email.id}" data-value="${email.emailAddress}">
+                    <span class="item-icon">✉</span>
+                    <span class="item-text">${email.emailAddress}</span>
+                </div>
+            `).join('');
+
+            attachDragListeners();
+        }
+
+        function renderJobTitles() {
+            const container = document.getElementById('jobTitlesContainer');
+            document.getElementById('jobTitleCount').textContent = availableJobTitles.length;
+
+            if (availableJobTitles.length === 0) {
+                container.innerHTML = '<div class="empty-state">Job title yok</div>';
+                return;
+            }
+
+            container.innerHTML = availableJobTitles.map(jt => `
+                <div class="draggable-item job-title" draggable="true"
+                     data-type="job-title" data-id="${jt.id}" data-value="${jt.displayName}">
+                    <span class="item-icon">🏷️</span>
+                    <span class="item-text">${jt.displayName}</span>
+                </div>
+            `).join('');
+
+            attachDragListeners();
+        }
+
+        function renderContacts() {
+            const container = document.getElementById('contactsContainer');
+
+            container.innerHTML = contacts.map((contact, index) => {
+                // Render phone list (both regular and manual)
+                const phonesList = contact.phoneIds.map(id => {
+                    let item = null;
+                    let isManual = false;
+
+                    if (id.startsWith('manual-')) {
+                        item = (contact.manualPhones || []).find(p => p.id === id);
+                        isManual = true;
+                    } else {
+                        item = currentRawData.phones.find(p => p.id === id);
+                    }
+
+                    if (!item) return '';
+
+                    const badge = isManual ? '<span class="manual-badge">Manuel</span>' : '';
+                    const value = isManual ? item.value : item.phoneNumber;
+
+                    return `<div class="dropped-item phone">
+                        <span>📞 ${value} ${badge}</span>
+                        <button class="remove-item" onclick="removeFromContact('${contact.tempId}', 'phone', '${id}')">✕</button>
+                    </div>`;
+                }).join('');
+
+                // Render email list (both regular and manual)
+                const emailsList = contact.emailIds.map(id => {
+                    let item = null;
+                    let isManual = false;
+
+                    if (id.startsWith('manual-')) {
+                        item = (contact.manualEmails || []).find(e => e.id === id);
+                        isManual = true;
+                    } else {
+                        item = currentRawData.emails.find(e => e.id === id);
+                    }
+
+                    if (!item) return '';
+
+                    const badge = isManual ? '<span class="manual-badge">Manuel</span>' : '';
+                    const value = isManual ? item.value : item.emailAddress;
+
+                    return `<div class="dropped-item email">
+                        <span>✉ ${value} ${badge}</span>
+                        <button class="remove-item" onclick="removeFromContact('${contact.tempId}', 'email', '${id}')">✕</button>
+                    </div>`;
+                }).join('');
+
+                return `
+                <div class="contact-card" data-temp-id="${contact.tempId}">
+                    <div class="contact-header">
+                        <div class="contact-number">Kişi #${index + 1}</div>
+                        ${contacts.length > 1 ? `<button class="delete-contact" onclick="removeContact('${contact.tempId}')">✕ Sil</button>` : ''}
+                    </div>
+
+                    <div class="contact-inputs">
+                        <div class="input-group">
+                            <label class="input-label required">Ad</label>
+                            <input type="text" class="contact-input"
+                                   data-field="firstName" data-temp-id="${contact.tempId}"
+                                   value="${contact.firstName}"
+                                   onchange="updateContact('${contact.tempId}', 'firstName', this.value)"
+                                   placeholder="Adı girin">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Soyad</label>
+                            <input type="text" class="contact-input"
+                                   data-field="lastName" data-temp-id="${contact.tempId}"
+                                   value="${contact.lastName}"
+                                   onchange="updateContact('${contact.tempId}', 'lastName', this.value)"
+                                   placeholder="Soyadı girin">
+                        </div>
+                    </div>
+
+                    <!-- Job Title Drop Zone -->
+                    <div class="drop-zone" data-zone="job-title" data-temp-id="${contact.tempId}">
+                        <div class="drop-zone-label">🏷️ Job Title (sürükle-bırak)</div>
+                        <div class="drop-zone-content">
+                            ${contact.jobTitleId ? `
+                                <div class="dropped-item job-title">
+                                    <span>🏷️ ${contact.jobTitleName}</span>
+                                    <button class="remove-item" onclick="removeFromContact('${contact.tempId}', 'job-title')">✕</button>
+                                </div>
+                            ` : '<div class="drop-zone-empty">Job title buraya sürükleyin</div>'}
+                        </div>
+                    </div>
+
+                    <!-- Phones Drop Zone -->
+                    <div class="drop-zone" data-zone="phone" data-temp-id="${contact.tempId}">
+                        <div class="drop-zone-label">📞 Telefonlar (sürükle-bırak)</div>
+                        <div class="drop-zone-content">
+                            ${phonesList.length > 0 ? phonesList : '<div class="drop-zone-empty">Telefonları buraya sürükleyin</div>'}
+                        </div>
+                    </div>
+
+                    <!-- Emails Drop Zone -->
+                    <div class="drop-zone" data-zone="email" data-temp-id="${contact.tempId}">
+                        <div class="drop-zone-label">✉ Emailler (sürükle-bırak)</div>
+                        <div class="drop-zone-content">
+                            ${emailsList.length > 0 ? emailsList : '<div class="drop-zone-empty">Emailleri buraya sürükleyin</div>'}
+                        </div>
+                    </div>
+
+                    <!-- Manuel Input Section -->
+                    <div class="manual-input-section">
+                        <div class="manual-input-title">📝 Manuel Giriş</div>
+
+                        <div class="manual-input-row">
+                            <input type="tel"
+                                   placeholder="Telefon ekle (5551234567)"
+                                   class="manual-input phone-input"
+                                   data-contact-id="${contact.tempId}"
+                                   data-type="phone"
+                                   onkeypress="handleManualInput(event, '${contact.tempId}', 'phone')">
+                            <button class="manual-add-btn" onclick="addManualItem('${contact.tempId}', 'phone')">+</button>
+                        </div>
+
+                        <div class="manual-input-row">
+                            <input type="email"
+                                   placeholder="Email ekle (ornek@mail.com)"
+                                   class="manual-input email-input"
+                                   data-contact-id="${contact.tempId}"
+                                   data-type="email"
+                                   onkeypress="handleManualInput(event, '${contact.tempId}', 'email')">
+                            <button class="manual-add-btn" onclick="addManualItem('${contact.tempId}', 'email')">+</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            }).join('');
+
+            attachDropZoneListeners();
+        }
+
+        // Drag and Drop
+        let draggedItem = null;
+
+        function attachDragListeners() {
+            document.querySelectorAll('.draggable-item').forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+        }
+
+        function attachDropZoneListeners() {
+            document.querySelectorAll('.drop-zone').forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('dragleave', handleDragLeave);
+                zone.addEventListener('drop', handleDrop);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedItem = {
+                type: e.target.dataset.type,
+                id: e.target.dataset.id,
+                value: e.target.dataset.value
+            };
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const zone = e.currentTarget;
+            const zoneType = zone.dataset.zone;
+
+            // Check if drop is allowed
+            if (draggedItem && draggedItem.type === zoneType) {
+                zone.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        // UPDATED: handleDrop with animation
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+
+            const zone = e.currentTarget;
+            const zoneType = zone.dataset.zone;
+            const tempId = zone.dataset.tempId;
+
+            if (!draggedItem || draggedItem.type !== zoneType) {
+                return;
+            }
+
+            const contact = contacts.find(c => c.tempId === tempId);
+            if (!contact) return;
+
+            // Get the dragged element for animation
+            const draggedElement = document.querySelector(`.draggable-item[data-id="${draggedItem.id}"]`);
+
+            // Add item to contact
+            if (zoneType === 'phone') {
+                if (!contact.phoneIds.includes(draggedItem.id)) {
+                    contact.phoneIds.push(draggedItem.id);
+
+                    // Animate removal
+                    if (draggedElement) {
+                        animateItemRemoval(draggedElement, () => {
+                            availablePhones = availablePhones.filter(p => p.id !== draggedItem.id);
+                            draggedItem = null;
+                            renderInterface();
+                        });
+                    } else {
+                        availablePhones = availablePhones.filter(p => p.id !== draggedItem.id);
+                        draggedItem = null;
+                        renderInterface();
+                    }
+                }
+            } else if (zoneType === 'email') {
+                if (!contact.emailIds.includes(draggedItem.id)) {
+                    contact.emailIds.push(draggedItem.id);
+
+                    // Animate removal
+                    if (draggedElement) {
+                        animateItemRemoval(draggedElement, () => {
+                            availableEmails = availableEmails.filter(e => e.id !== draggedItem.id);
+                            draggedItem = null;
+                            renderInterface();
+                        });
+                    } else {
+                        availableEmails = availableEmails.filter(e => e.id !== draggedItem.id);
+                        draggedItem = null;
+                        renderInterface();
+                    }
+                }
+            } else if (zoneType === 'job-title') {
+                // Job titles replace (only one per contact)
+                contact.jobTitleId = draggedItem.id;
+                contact.jobTitleName = draggedItem.value;
+                draggedItem = null;
+                renderInterface();
+            }
+        }
+
+        // NEW: Animate item removal
+        function animateItemRemoval(element, callback) {
+            // Add success checkmark
+            const checkmark = document.createElement('div');
+            checkmark.className = 'success-checkmark';
+            checkmark.textContent = '✓';
+            element.style.position = 'relative';
+            element.appendChild(checkmark);
+
+            // Add removing class for animation
+            element.classList.add('removing');
+
+            // Wait for animation to complete before callback
+            setTimeout(() => {
+                callback();
+            }, 500); // Match animation duration
+        }
+
+        // Update and Remove
+        function updateContact(tempId, field, value) {
+            const contact = contacts.find(c => c.tempId === tempId);
+            if (contact) {
+                contact[field] = value;
+                validateState();
+            }
+        }
+
+        // UPDATED: removeFromContact without animation (when removing from contact card)
+        function removeFromContact(tempId, type, itemId = null) {
+            const contact = contacts.find(c => c.tempId === tempId);
+            if (!contact) return;
+
+            if (type === 'phone') {
+                contact.phoneIds = contact.phoneIds.filter(id => id !== itemId);
+
+                // Return to available pool if not manual
+                if (!itemId.startsWith('manual-')) {
+                    const phone = currentRawData.phones.find(p => p.id === itemId);
+                    if (phone && !availablePhones.find(p => p.id === itemId)) {
+                        availablePhones.push(phone);
+                    }
+                } else {
+                    // Remove from manual list
+                    contact.manualPhones = (contact.manualPhones || []).filter(p => p.id !== itemId);
+                }
+            } else if (type === 'email') {
+                contact.emailIds = contact.emailIds.filter(id => id !== itemId);
+
+                // Return to available pool if not manual
+                if (!itemId.startsWith('manual-')) {
+                    const email = currentRawData.emails.find(e => e.id === itemId);
+                    if (email && !availableEmails.find(e => e.id === itemId)) {
+                        availableEmails.push(email);
+                    }
+                } else {
+                    // Remove from manual list
+                    contact.manualEmails = (contact.manualEmails || []).filter(e => e.id !== itemId);
+                }
+            } else if (type === 'job-title') {
+                contact.jobTitleId = null;
+                contact.jobTitleName = null;
+            }
+
+            renderInterface();
+        }
+
+        // Validation
+        function validateState() {
+            const errors = [];
+            let validCount = 0;
+
+            contacts.forEach((contact, index) => {
+                if (!contact.firstName) {
+                    errors.push(`Kişi #${index + 1}: Ad gerekli`);
+                } else if (contact.phoneIds.length === 0 && contact.emailIds.length === 0) {
+                    errors.push(`Kişi #${index + 1}: En az 1 telefon VEYA 1 email gerekli`);
+                } else {
+                    validCount++;
+                }
+            });
+
+            // Don't count manual items as unmatched
+            const unmatchedPhones = availablePhones.length;
+            const unmatchedEmails = availableEmails.length;
+            const hasUnmatched = unmatchedPhones > 0 || unmatchedEmails > 0;
+
+            if (hasUnmatched) {
+                errors.push(`${unmatchedPhones + unmatchedEmails} öğe henüz eşleştirilmedi`);
+            }
+
+            const validationEl = document.getElementById('validationMessage');
+            const saveBtn = document.getElementById('saveBtn');
+
+            if (errors.length > 0) {
+                validationEl.textContent = errors[0];
+                validationEl.className = 'validation-message';
+                saveBtn.disabled = true;
+                saveBtn.textContent = `Onayla ve Kaydet (${validCount} kişi)`;
+            } else {
+                validationEl.textContent = `✓ Tüm validasyonlar geçti!`;
+                validationEl.className = 'validation-message success';
+                saveBtn.disabled = false;
+                saveBtn.textContent = `Onayla ve Kaydet (${validCount} kişi)`;
+
+                // Enhanced console logging when all validations pass
+                console.log('✓ Tüm validasyonlar geçti!');
+                console.log('Contacts:', contacts.map(c => ({
+                    name: `${c.firstName} ${c.lastName || ''}`,
+                    phones: c.phoneIds.length,
+                    emails: c.emailIds.length,
+                    phoneIds: c.phoneIds,
+                    emailIds: c.emailIds
+                })));
+            }
+        }
+
+        // Preview
+        function showPreview() {
+            const content = document.getElementById('previewContent');
+
+            const totalPhones = contacts.reduce((sum, c) => sum + c.phoneIds.length, 0);
+            const totalEmails = contacts.reduce((sum, c) => sum + c.emailIds.length, 0);
+
+            let html = `
+                <div class="preview-summary">
+                    <div class="preview-stat">✓ ${contacts.length} kişi kaydedilecek</div>
+                    <div class="preview-stat">✓ ${totalPhones} telefon eşleştirilecek</div>
+                    <div class="preview-stat">✓ ${totalEmails} email eşleştirilecek</div>
+                </div>
+            `;
+
+            contacts.forEach((contact, index) => {
+                const jobTitle = contact.jobTitleId
+                    ? availableJobTitles.find(jt => jt.id === contact.jobTitleId)
+                    : null;
+
+                html += `
+                    <div class="preview-contact">
+                        <div class="preview-contact-name">
+                            Kişi ${index + 1}: ${contact.firstName} ${contact.lastName || ''}
+                            ${jobTitle ? `(${jobTitle.displayName})` : ''}
+                        </div>
+                        ${contact.phoneIds.length > 0 ? `<div class="preview-contact-detail">📞 ${contact.phoneIds.length} telefon${contact.phoneIds.length > 1 ? ' (birden fazla telefon)' : ''}</div>` : ''}
+                        ${contact.emailIds.length > 0 ? `<div class="preview-contact-detail">✉ ${contact.emailIds.length} email${contact.emailIds.length > 1 ? ' (birden fazla email)' : ''}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            content.innerHTML = html;
+            showModal('previewModal');
+        }
+
+        function closePreview() {
+            closeModal('previewModal');
+        }
+
+        async function confirmSave() {
+            closeModal('previewModal');
+            await saveAll();
+        }
+
+        // ============================================
+        // UPDATED: Save All - WITH NORMALIZATION
+        // ============================================
+        async function saveAll() {
+            const saveBtn = document.getElementById('saveBtn');
+            const originalText = saveBtn.textContent;
+            saveBtn.innerHTML = '<span class="loading-spinner"></span> Kaydediliyor...';
+            saveBtn.disabled = true;
+
+            try {
+                // Step 1: Create manual phone/email records first (WITH NORMALIZATION)
+                for (const contact of contacts) {
+                    // Create phone records for manual phones
+                    if (contact.manualPhones && contact.manualPhones.length > 0) {
+                        for (const manualPhone of contact.manualPhones) {
+                            // Normalize phone before sending to API
+                            let normalizedPhone;
+                            try {
+                                normalizedPhone = normalizePhone(manualPhone.value);
+                            } catch (error) {
+                                throw new Error(`Manuel telefon normalizasyon hatası: ${error.message}`);
+                            }
+
+                            const response = await fetch(`${API_BASE_URL}/api/phones`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    phoneNumber: normalizedPhone,
+                                    rawDataId: currentRawData.rawDataId || currentRawData.id
+                                })
+                            });
+
+                            if (response.ok) {
+                                const data = await response.json();
+                                // Replace manual ID with real ID
+                                const index = contact.phoneIds.indexOf(manualPhone.id);
+                                if (index !== -1) {
+                                    contact.phoneIds[index] = data.phone.id;
+                                }
+                            } else {
+                                const errorData = await response.json();
+                                throw new Error(`Telefon kaydetme hatası: ${errorData.error || 'Bilinmeyen hata'}`);
+                            }
+                        }
+                    }
+
+                    // Create email records for manual emails
+                    if (contact.manualEmails && contact.manualEmails.length > 0) {
+                        for (const manualEmail of contact.manualEmails) {
+                            // Normalize email before sending to API
+                            let normalizedEmail;
+                            try {
+                                normalizedEmail = normalizeEmail(manualEmail.value);
+                            } catch (error) {
+                                throw new Error(`Manuel email normalizasyon hatası: ${error.message}`);
+                            }
+
+                            const response = await fetch(`${API_BASE_URL}/api/emails`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    emailAddress: normalizedEmail,
+                                    rawDataId: currentRawData.rawDataId || currentRawData.id
+                                })
+                            });
+
+                            if (response.ok) {
+                                const data = await response.json();
+                                // Replace manual ID with real ID
+                                const index = contact.emailIds.indexOf(manualEmail.id);
+                                if (index !== -1) {
+                                    contact.emailIds[index] = data.email.id;
+                                }
+                            } else {
+                                const errorData = await response.json();
+                                throw new Error(`Email kaydetme hatası: ${errorData.error || 'Bilinmeyen hata'}`);
+                            }
+                        }
+                    }
+                }
+
+                // Step 2: Prepare batch payload
+                const batchPayload = {
+                    username: currentUser,
+                    rawDataId: currentRawData.rawDataId || currentRawData.id,
+                    contacts: contacts.map(contact => ({
+                        firstName: contact.firstName,
+                        lastName: contact.lastName || undefined,
+                        jobTitleId: contact.jobTitleId || undefined,
+                        hospitalId: null, // Will be set later in hospital matching phase
+                        phoneIds: contact.phoneIds || [],
+                        emailIds: contact.emailIds || []
+                    }))
+                };
+
+                console.log('Batch payload:', batchPayload);
+
+                // Step 3: Call batch-assign API
+                const response = await fetch(`${API_BASE_URL}/api/matching/batch-assign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(batchPayload)
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Batch kaydetme başarısız');
+                }
+
+                const result = await response.json();
+                console.log('Batch save result:', result);
+
+                showAlert(`Başarıyla kaydedildi! ${result.contacts.length} kişi oluşturuldu. Sonraki kayıt yükleniyor...`, 'success');
+
+                // Stop lock timer on successful save
+                stopLockTimer();
+
+                // Close preview modal if open
+                closeModal('previewModal');
+
+                // Load next record
+                setTimeout(() => {
+                    loadNextRecord();
+                }, 1500);
+
+            } catch (error) {
+                console.error('Save error:', error);
+                showAlert('Kaydetme hatası: ' + error.message, 'error');
+                saveBtn.textContent = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
+        // ============================================
+        // END UPDATED Save All
+        // ============================================
+
+        // Utility Functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, type === 'error' ? 5000 : 3000);
+        }
+
+        // Cleanup on page unload - Release lock
+        window.addEventListener('beforeunload', async (e) => {
+            if (currentRawData) {
+                try {
+                    await fetch(`${API_BASE_URL}/api/matching/release`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            rawDataId: currentRawData.rawDataId || currentRawData.id,
+                            username: currentUser
+                        }),
+                        keepalive: true
+                    });
+                } catch (error) {
+                    console.error('Failed to release lock on page close:', error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

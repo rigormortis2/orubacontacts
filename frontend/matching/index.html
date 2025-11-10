@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Contact Matching System - Assign contacts to hospitals">
+  <title>Contact Matching System</title>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css?v=1.2">
+
+  <!-- Favicon (optional) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏥</text></svg>">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <h1>
+        <span>🏥</span>
+        Contact Matching System
+      </h1>
+      <div class="header-actions">
+        <div class="timer-display">
+          <span class="clock-icon">⏱️</span>
+          <span id="lock-timer">Lock expires in: 5:00</span>
+        </div>
+        <div class="username-badge" id="username-display">
+          Guest
+        </div>
+        <button class="btn btn-secondary" id="btn-change-username">
+          Change User
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="container">
+
+    <!-- Statistics Section -->
+    <section class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card primary">
+          <div class="stat-label">Total Records</div>
+          <div class="stat-value" id="stat-total">0</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">Matched</div>
+          <div class="stat-value" id="stat-matched">0</div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-label">Unmatched</div>
+          <div class="stat-value" id="stat-unmatched">0</div>
+        </div>
+        <div class="stat-card danger">
+          <div class="stat-label">Locked</div>
+          <div class="stat-value" id="stat-locked">0</div>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="progress-container">
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+          <div class="progress-text" id="progress-text">0% Complete</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content: Phones/Emails + Matching Card -->
+    <div class="main-content">
+
+      <!-- Left Panel: Phones & Emails -->
+      <aside class="phones-emails-panel">
+        <div class="panel-section">
+          <h3>
+            <span>📞</span>
+            Phone Numbers
+          </h3>
+          <div class="phone-list" id="phone-list">
+            <div class="empty-message">No phones available</div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h3>
+            <span>📧</span>
+            Email Addresses
+          </h3>
+          <div class="email-list" id="email-list">
+            <div class="empty-message">No emails available</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Panel: Matching Card -->
+      <main class="matching-card" id="matching-card">
+        <div class="card-header">
+          <h2>Current Record</h2>
+          <div class="trello-title" id="trello-title">
+            Loading...
+          </div>
+          <div class="trello-description" id="trello-description">
+            Please wait while we load the next record...
+          </div>
+        </div>
+
+        <!-- Contact Forms Container -->
+        <div class="contact-forms-container" id="contact-forms-container">
+          <div class="no-contacts-message">
+            <p>No contact persons added yet.</p>
+            <p>Click "Add Contact Person" below to get started.</p>
+          </div>
+        </div>
+
+        <!-- Add Contact Button -->
+        <div style="margin-bottom: 1.5rem;">
+          <button class="btn btn-primary" id="btn-add-contact">
+            <span>➕</span>
+            Add Contact Person
+          </button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button class="btn btn-danger" id="btn-release-lock">
+            <span>🔓</span>
+            Release Lock & Exit
+          </button>
+          <button class="btn btn-success" id="btn-complete-matching">
+            <span>✅</span>
+            Complete Matching
+          </button>
+        </div>
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- JavaScript Modules - Cache busting with version parameter -->
+  <script type="module" src="js/config.js?v=1.2"></script>
+  <script type="module" src="js/api.js?v=1.2"></script>
+  <script type="module" src="js/timer.js?v=1.2"></script>
+  <script type="module" src="js/state.js?v=1.2"></script>
+  <script type="module" src="js/ui.js?v=1.2"></script>
+  <script type="module" src="js/app.js?v=1.2"></script>
+
+</body>
+</html>
